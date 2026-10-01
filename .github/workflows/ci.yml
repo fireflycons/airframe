@@ -14,12 +14,24 @@ jobs:
         with:
           go-version-file: go.mod
 
-      # Install only; the Makefile runs it once per GOOS so both platform
-      # variants of internal/cli are linted.
-      - uses: golangci/golangci-lint-action@v8
+      # Lint once per GOOS so both platform variants of internal/cli are
+      # checked (mirrors "make lint").
+      - name: Lint (windows)
+        uses: golangci/golangci-lint-action@v8
+        env:
+          GOOS: windows
         with:
           version: v2.12.2
-          install-only: true
 
-      # "make test" runs lint-windows and lint-linux, then the tests.
-      - run: make test
+      - name: Lint (linux)
+        uses: golangci/golangci-lint-action@v8
+        env:
+          GOOS: linux
+        with:
+          version: v2.12.2
+
+      # Mirrors "make test" without repeating the lint.
+      - name: Test
+        run: |
+          go test -v -race ./...
+          go test -v -count=20 ./internal/core/service
