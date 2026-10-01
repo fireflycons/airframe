@@ -39,7 +39,7 @@ func init() {
 	pf.StringVar(&flags.location, "location", "", `observer location as "latitude,longitude" (default: auto-detect from public IP)`)
 	pf.Float64Var(&flags.radius, "radius", 5, fmt.Sprintf("search radius in nautical miles (max %d)", domain.MaxRadius))
 	pf.DurationVar(&flags.interval, "interval", service.DefaultInterval, "aircraft data poll interval")
-	pf.StringVar(&flags.listen, "listen", ":8080", "HTTP listen address")
+	pf.StringVar(&flags.listen, "listen", ":7700", "HTTP listen address")
 }
 
 // config validates the flags and builds the app configuration.
