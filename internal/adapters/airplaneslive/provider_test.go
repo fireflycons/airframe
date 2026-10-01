@@ -44,6 +44,7 @@ func TestMapping(t *testing.T) {
 			Registration: "EI-DCL",
 			TypeCode:     "B738",
 			Desc:         "BOEING 737-800",
+			Category:     "A3",
 			AltBaro:      api.AltBaro{Altitude: 12000},
 			AltGeom:      12250,
 			BaroRate:     -640,
@@ -72,6 +73,7 @@ func TestMapping(t *testing.T) {
 	require.Equal(t, "Ryanair", ac.Airline)
 	require.Equal(t, "B738", ac.TypeCode)
 	require.Equal(t, "BOEING 737-800", ac.Description)
+	require.Equal(t, "A3", ac.Category)
 	require.Equal(t, 12000.0, ac.BarometricAltitude)
 	require.False(t, ac.OnGround)
 	require.Equal(t, 12250.0, ac.GeometricAltitude)

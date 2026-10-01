@@ -72,6 +72,7 @@ func convert(src api.Aircraft, observer geocoord.Coordinate) (domain.Aircraft, b
 		Registration:        src.Registration,
 		TypeCode:            src.TypeCode,
 		Description:         src.Desc,
+		Category:            src.Category,
 		BarometricAltitude:  float64(src.AltBaro.Altitude),
 		OnGround:            src.AltBaro.IsGround,
 		GeometricAltitude:   float64(src.AltGeom),

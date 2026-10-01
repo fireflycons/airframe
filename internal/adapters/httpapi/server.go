@@ -3,9 +3,12 @@ package httpapi
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
+	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
@@ -19,19 +22,38 @@ import (
 // maxBodyBytes limits the size of request bodies.
 const maxBodyBytes = 4096
 
-// Server serves GET /aircraft and POST /observer.
+// webFS holds the single page application. index.html is a template;
+// everything else is served as is under /static/.
+//
+//go:embed web
+var webFS embed.FS
+
+var indexTemplate = template.Must(template.ParseFS(webFS, "web/index.html"))
+
+// Server serves the web UI, GET /aircraft and POST /observer.
 type Server struct {
 	service ports.AircraftService
+	// Poll interval, rendered into the web UI so it polls at the same rate.
+	interval time.Duration
 }
 
 // New creates a Server.
-func New(service ports.AircraftService) *Server {
-	return &Server{service: service}
+func New(service ports.AircraftService, interval time.Duration) *Server {
+	return &Server{service: service, interval: interval}
 }
 
 // Handler returns the HTTP routes.
 func (s *Server) Handler() http.Handler {
+	static, err := fs.Sub(webFS, "web")
+	if err != nil {
+		panic(err) // the embedded directory is fixed at compile time
+	}
+
 	mux := http.NewServeMux()
+	// "/{$}" matches only the root. A bare "GET /" would also match
+	// GET /observer, which must stay a 405.
+	mux.HandleFunc("GET /{$}", s.index)
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(static)))
 	mux.HandleFunc("GET /aircraft", s.aircraft)
 	mux.HandleFunc("POST /observer", s.setObserver)
 	return mux
@@ -67,6 +89,15 @@ func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
 		return err
 	}
 	return nil
+}
+
+func (s *Server) index(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	data := struct{ IntervalMs int64 }{s.interval.Milliseconds()}
+	if err := indexTemplate.Execute(w, data); err != nil {
+		slog.Error("rendering index", "error", err)
+	}
 }
 
 func (s *Server) aircraft(w http.ResponseWriter, r *http.Request) {

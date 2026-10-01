@@ -98,7 +98,9 @@ func install() error {
 	if err != nil {
 		return fmt.Errorf("connecting to service manager (run as administrator): %w", err)
 	}
-	defer m.Disconnect()
+	defer func() {
+		_ = m.Disconnect()
+	}()
 
 	s, err := m.CreateService(serviceName, exe, mgr.Config{
 		StartType:   mgr.StartAutomatic,
@@ -111,7 +113,9 @@ func install() error {
 		}
 		return err
 	}
-	defer s.Close()
+	defer func() {
+		_ = s.Close()
+	}()
 
 	fmt.Printf("service %q installed\n", serviceName)
 	return nil
@@ -122,13 +126,17 @@ func uninstall() error {
 	if err != nil {
 		return fmt.Errorf("connecting to service manager (run as administrator): %w", err)
 	}
-	defer m.Disconnect()
+	defer func() {
+		_ = m.Disconnect()
+	}()
 
 	s, err := m.OpenService(serviceName)
 	if err != nil {
 		return fmt.Errorf("service %q is not installed: %w", serviceName, err)
 	}
-	defer s.Close()
+	defer func() {
+		_ = s.Close()
+	}()
 
 	if err := s.Delete(); err != nil {
 		return err

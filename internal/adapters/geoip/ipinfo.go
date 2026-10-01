@@ -40,7 +40,9 @@ func (l *IPInfo) Locate(ctx context.Context) (geocoord.Coordinate, error) {
 	if err != nil {
 		return geocoord.Coordinate{}, fmt.Errorf("ipinfo request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func () {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return geocoord.Coordinate{}, fmt.Errorf("ipinfo request: status %d", resp.StatusCode)

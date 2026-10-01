@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>airframe</title>
+<link rel="stylesheet" href="/static/app.css">
+<script type="module" src="/static/app.js"></script>
+</head>
+<body data-interval-ms="{{.IntervalMs}}">
+
+<svg class="defs" aria-hidden="true">
+  <!-- Side view of an aircraft, nose to the right. Pitched by the symbols below. -->
+  <symbol id="plane-side" viewBox="0 0 24 24">
+    <path d="M2 7.5h2.2l2.6 3.5H19c1.9 0 3 .6 3 1.3s-1.1 1.4-3 1.4H6.2c-1.6 0-2.7-.5-3.2-1.5z"/>
+    <path d="M9 13.7l3.6 3.8h2.1l-2.1-3.8z"/>
+  </symbol>
+  <symbol id="climb" viewBox="0 0 24 24"><use href="#plane-side" transform="rotate(-22 12 12)"/></symbol>
+  <symbol id="level" viewBox="0 0 24 24"><use href="#plane-side"/></symbol>
+  <symbol id="descend" viewBox="0 0 24 24"><use href="#plane-side" transform="rotate(22 12 12)"/></symbol>
+  <symbol id="ground" viewBox="0 0 24 24">
+    <use href="#plane-side" transform="translate(0 -3)"/>
+    <rect x="1" y="19" width="22" height="1.6" rx=".8"/>
+  </symbol>
+  <!-- Side view of an airside vehicle with a roof beacon. -->
+  <symbol id="vehicle" viewBox="0 0 24 24">
+    <path d="M7 5.5h3V8H7z"/>
+    <path d="M2 8.5h12.5l4 4H21a1 1 0 0 1 1 1V17H2z"/>
+    <circle cx="6.5" cy="18" r="2.2"/><circle cx="17.5" cy="18" r="2.2"/>
+  </symbol>
+  <!-- Top view of a vehicle, front up (north). Rotated by track on the radar. -->
+  <symbol id="vehicle-top" viewBox="-12 -12 24 24">
+    <path fill-rule="evenodd" d="M-4.5-9h9A1.5 1.5 0 0 1 6-7.5v16A1.5 1.5 0 0 1 4.5 10h-9A1.5 1.5 0 0 1-6 8.5v-16A1.5 1.5 0 0 1-4.5-9zM-4-5h8v3h-8z"/>
+  </symbol>
+  <!-- Top view of an aircraft, nose up (north). Rotated by track on the radar. -->
+  <symbol id="plane-top" viewBox="-12 -12 24 24">
+    <path d="M0-10.5c.9 0 1.5 1.2 1.5 3V-3l8.5 5v2.2L1.5 1.6 1 7l3 2.2v1.5L0 9.6l-4 1.1V9.2L-1 7l-.5-5.4L-10 4.2V2l8.5-5v-4.5c0-1.8.6-3 1.5-3z"/>
+  </symbol>
+  <symbol id="arrow" viewBox="-12 -12 24 24">
+    <path d="M0-10l6 14-6-3.5-6 3.5z"/>
+  </symbol>
+</svg>
+
+<header class="bar">
+  <h1>airframe</h1>
+  <div class="observer" id="observer">Waiting for data…</div>
+  <div class="status">
+    <span id="updated"></span>
+    <span class="dot" id="status-dot" data-state="wait" title="Waiting for data"></span>
+  </div>
+  <button type="button" class="settings-btn" id="open-settings" aria-label="Settings" title="Settings">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.7 7.7 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.7 7.7 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.7 7.7 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.7 7.7 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>
+  </button>
+</header>
+
+<main>
+  <section class="hero" aria-label="Nearest aircraft">
+    <p class="hero-empty" id="hero-empty">Waiting for data…</p>
+    <div class="hero-body" id="hero-body" hidden>
+      <div class="ident">
+        <div class="label">Nearest aircraft</div>
+        <div class="callsign" id="h-callsign"></div>
+        <div class="airline" id="h-airline"></div>
+        <div class="meta" id="h-meta"></div>
+      </div>
+      <dl class="tiles">
+        <div class="tile"><dt>Altitude</dt><dd><span id="h-alt"></span><small id="h-alt-unit"></small></dd></div>
+        <div class="tile"><dt>Vertical rate</dt><dd><span class="vs-slot" id="h-vs-icon"></span><span id="h-vs"></span><small>ft/min</small></dd></div>
+        <div class="tile"><dt>Ground speed</dt><dd><span id="h-gs"></span><small>kt</small></dd></div>
+        <div class="tile"><dt>Track</dt><dd><svg class="track-arrow" id="h-track-arrow" aria-hidden="true"><use href="#arrow"/></svg><span id="h-track"></span><small id="h-track-point"></small></dd></div>
+        <div class="tile"><dt>Distance</dt><dd><span id="h-dist"></span><small>NM</small></dd></div>
+        <div class="tile"><dt>Bearing</dt><dd><span id="h-brg"></span><small id="h-brg-point"></small></dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="radar" aria-label="Radar">
+    <svg id="radar" viewBox="-1.1 -1.1 2.2 2.2" role="img" aria-label="Positions of nearby aircraft relative to the observer">
+      <g class="scope">
+        <circle r="1" class="edge"/>
+        <circle r=".75"/><circle r=".5"/><circle r=".25"/>
+        <path d="M-1 0H1M0-1V1"/>
+      </g>
+      <g class="sweep"><path d="M0 0V-1A1 1 0 0 1 .31-.95z"/></g>
+      <g class="compass">
+        <text y="-1.03">N</text><text x="1.05" y=".015">E</text>
+        <text y="1.07">S</text><text x="-1.05" y=".015">W</text>
+      </g>
+      <g class="rings" id="ring-labels"></g>
+      <circle r=".018" class="observer-dot"/>
+      <g id="blips"></g>
+    </svg>
+  </section>
+
+  <section class="traffic" aria-label="Other aircraft">
+    <table>
+      <thead>
+        <tr>
+          <th><span class="sr-only">Vertical</span></th>
+          <th>Flight</th><th>Airline</th><th>Type</th>
+          <th class="num">Alt ft</th><th class="num">GS kt</th><th class="num">Trk °</th>
+          <th class="num">Dist NM</th><th class="num">Brg °</th>
+        </tr>
+      </thead>
+      <tbody id="traffic"></tbody>
+    </table>
+  </section>
+</main>
+
+<dialog id="settings">
+  <form id="settings-form" method="dialog">
+    <h2>Observer</h2>
+    <label>Latitude
+      <input name="lat" type="number" step="any" min="-90" max="90" required>
+    </label>
+    <label>Longitude
+      <input name="lon" type="number" step="any" min="-180" max="180" required>
+    </label>
+    <label>Radius (NM)
+      <input name="radius" type="number" step="any" min="0.1" max="250" required>
+    </label>
+    <p class="error" id="settings-error" role="alert"></p>
+    <div class="actions">
+      <button type="button" id="cancel-settings">Cancel</button>
+      <button type="submit" class="primary">Apply</button>
+    </div>
+  </form>
+</dialog>
+
+</body>
+</html>

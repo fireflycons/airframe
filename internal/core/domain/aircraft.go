@@ -23,6 +23,10 @@ type Aircraft struct {
 	// Long type description (optional)
 	Description string `json:"description,omitempty"`
 
+	// ADS-B emitter category, A0-D7 (DO-260B 2.2.3.2.5.2); empty if not
+	// broadcast. C1 and C2 are surface emergency and service vehicles.
+	Category string `json:"category,omitempty"`
+
 	// Barometric altitude in feet
 	BarometricAltitude float64 `json:"barometricAltitude"`
 

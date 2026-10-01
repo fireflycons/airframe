@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/fireflycons/airframe/internal/core/domain"
 	"github.com/fireflycons/geocoord"
@@ -39,8 +40,38 @@ var location = geocoord.MustNewCoordinate(51.47, -0.4543)
 
 func serve(svc *fakeService, method, path, body string) *httptest.ResponseRecorder {
 	rec := httptest.NewRecorder()
-	New(svc).Handler().ServeHTTP(rec, httptest.NewRequest(method, path, strings.NewReader(body)))
+	New(svc, 3*time.Second).Handler().ServeHTTP(rec, httptest.NewRequest(method, path, strings.NewReader(body)))
 	return rec
+}
+
+func TestIndex(t *testing.T) {
+	rec := serve(&fakeService{}, http.MethodGet, "/", "")
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, "text/html; charset=utf-8", rec.Header().Get("Content-Type"))
+	require.Contains(t, rec.Body.String(), `data-interval-ms="3000"`)
+	require.Contains(t, rec.Body.String(), `/static/app.js`)
+}
+
+func TestStatic(t *testing.T) {
+	tests := []struct {
+		path        string
+		contentType string
+	}{
+		{"/static/app.js", "javascript"},
+		{"/static/app.css", "text/css"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			rec := serve(&fakeService{}, http.MethodGet, tt.path, "")
+
+			require.Equal(t, http.StatusOK, rec.Code)
+			require.Contains(t, rec.Header().Get("Content-Type"), tt.contentType)
+		})
+	}
+
+	require.Equal(t, http.StatusNotFound, serve(&fakeService{}, http.MethodGet, "/static/nope", "").Code)
+	require.Equal(t, http.StatusNotFound, serve(&fakeService{}, http.MethodGet, "/nope", "").Code)
 }
 
 func TestAircraft(t *testing.T) {

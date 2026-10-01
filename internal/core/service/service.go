@@ -16,7 +16,7 @@ import (
 
 const (
 	DefaultInterval    = 5 * time.Second
-	DefaultIdleTimeout = 60 * time.Second
+	DefaultIdleTimeout = 30 * time.Second
 )
 
 // ErrNoData is returned when a client is woken but no data could be obtained.
@@ -129,13 +129,13 @@ func (s *Service) run(ctx context.Context) {
 		s.mu.Unlock()
 
 		if idle {
-			slog.Debug("poller idle, waiting for client request")
+			slog.Info("poller sleeping until next client request")
 			select {
 			case <-ctx.Done():
 				return
 			case <-s.wake:
 			}
-			slog.Debug("poller woken")
+			slog.Info("poller woken by client request")
 			s.refresh(ctx)
 			s.release(false)
 			ticker.Reset(s.interval)

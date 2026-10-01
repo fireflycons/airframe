@@ -51,7 +51,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	slog.Info("starting airframe", "location", location.String(), "radius", cfg.Radius, "interval", cfg.Interval)
 	context.AfterFunc(ctx, func() { slog.Info("shutting down") })
-	if err := httpapi.New(svc).ListenAndServe(ctx, cfg.Listen); err != nil {
+	if err := httpapi.New(svc, cfg.Interval).ListenAndServe(ctx, cfg.Listen); err != nil {
 		return err
 	}
 	slog.Info("airframe stopped")
