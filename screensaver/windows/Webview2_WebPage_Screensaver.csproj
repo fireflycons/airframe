@@ -168,7 +168,7 @@
     <Compile Include="ModernUiControls.cs" />
     <Compile Include="FallbackHtmlProvider.cs" />
     <Compile Include="ConfigExportImport.cs" />
-    <Compile Include="UpdateChecker.cs" />
+    <Compile Include="EmbeddedWebView2Loader.cs" />
     <Compile Include="PreviewDialog.cs" />
     <Compile Include="PreferencesForm.cs">
       <SubType>Form</SubType>
@@ -200,6 +200,15 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="packages\Microsoft.Web.WebView2.1.0.3912.50\runtimes\win-x86\native\WebView2Loader.dll">
+      <LogicalName>WebView2Loader.x86.dll</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="packages\Microsoft.Web.WebView2.1.0.3912.50\runtimes\win-x64\native\WebView2Loader.dll">
+      <LogicalName>WebView2Loader.x64.dll</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="packages\Microsoft.Web.WebView2.1.0.3912.50\runtimes\win-arm64\native\WebView2Loader.dll">
+      <LogicalName>WebView2Loader.arm64.dll</LogicalName>
     </EmbeddedResource>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -243,7 +252,7 @@ if $(ConfigurationName) == Release Move /Y "$(TargetPath)" "$(TargetDir)$(Target
   </PropertyGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
-      <ErrorText>Ce projet fait référence à des packages NuGet qui sont manquants sur cet ordinateur. Utilisez l'option de restauration des packages NuGet pour les télécharger. Pour plus d'informations, consultez http://go.microsoft.com/fwlink/?LinkID=322105. Le fichier manquant est : {0}.</ErrorText>
+      <ErrorText>This project references NuGet packages that are missing on this computer. Use the NuGet package restore option to download them. For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is: {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('packages\Microsoft.Web.WebView2.1.0.3912.50\build\Microsoft.Web.WebView2.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Web.WebView2.1.0.3912.50\build\Microsoft.Web.WebView2.targets'))" />
     <Error Condition="!Exists('packages\Fody.6.9.3\build\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Fody.6.9.3\build\Fody.targets'))" />

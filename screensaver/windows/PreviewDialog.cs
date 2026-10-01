@@ -19,14 +19,13 @@ namespace Web_Page_Screensaver
         private double zoomFactor;
         private bool isMuted;
 
-        public PreviewDialog(string url, double zoom, bool mute, string language)
+        public PreviewDialog(string url, double zoom, bool mute)
         {
             targetUrl = url;
             zoomFactor = zoom > 0 ? zoom : 1.0;
             isMuted = mute;
 
-            bool isKo = (language == "ko");
-            Text = (isKo ? "웹 화면보호기 실시간 미리보기 - " : "Live Web Screensaver Preview - ") + url;
+            Text = "Live Web Screensaver Preview - " + url;
             Size = new Size(1024, 640);
             StartPosition = FormStartPosition.CenterParent;
             KeyPreview = true;
@@ -37,7 +36,7 @@ namespace Web_Page_Screensaver
             }
             catch { }
 
-            InitializeUI(isKo);
+            InitializeUI();
             InitializeWebViewAsync();
 
             KeyDown += (s, e) =>
@@ -46,7 +45,7 @@ namespace Web_Page_Screensaver
             };
         }
 
-        private void InitializeUI(bool isKo)
+        private void InitializeUI()
         {
             var header = new Panel
             {
@@ -58,7 +57,7 @@ namespace Web_Page_Screensaver
 
             lblStatus = new Label
             {
-                Text = (isKo ? "페이지 로딩 중... " : "Loading page... ") + targetUrl,
+                Text = "Loading page... " + targetUrl,
                 Font = new Font("Segoe UI", 9f),
                 ForeColor = ThemeManager.Colors.TextSecondary,
                 AutoSize = false,
@@ -70,7 +69,7 @@ namespace Web_Page_Screensaver
 
             btnClose = new ModernButton
             {
-                Text = isKo ? "닫기 (Esc)" : "Close (Esc)",
+                Text = "Close (Esc)",
                 Style = ModernButtonStyle.Secondary,
                 Width = 100,
                 Height = 30,
@@ -98,7 +97,7 @@ namespace Web_Page_Screensaver
 
             try
             {
-                string userDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LibraryScreensaver_Data");
+                string userDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Airframe-Screensaver");
                 var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
                 await webView.EnsureCoreWebView2Async(env);
 
@@ -112,8 +111,8 @@ namespace Web_Page_Screensaver
                         {
                             webView.ZoomFactor = zoomFactor;
                             lblStatus.Text = e.IsSuccess 
-                                ? $"✔ {targetUrl} ({(int)(zoomFactor * 100)}% 배율)"
-                                : $"⚠ 로드 실패: {e.WebErrorStatus}";
+                                ? $"✔ {targetUrl} ({(int)(zoomFactor * 100)}% zoom)"
+                                : $"⚠ Load failed: {e.WebErrorStatus}";
                         }
                         catch { }
                     };
@@ -123,7 +122,7 @@ namespace Web_Page_Screensaver
             }
             catch (Exception ex)
             {
-                lblStatus.Text = "WebView2 초기화 실패: " + ex.Message;
+                lblStatus.Text = "WebView2 initialisation failed: " + ex.Message;
             }
         }
 

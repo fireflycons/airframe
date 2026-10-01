@@ -7,7 +7,6 @@ namespace Web_Page_Screensaver
     public partial class PrefsByScreenUserControl : UserControl
     {
         private ListViewItem newlyAddedItem = null;
-        private string currentLanguage = "en";
         private Action themeChangeHandler;
 
         public PrefsByScreenUserControl()
@@ -83,35 +82,32 @@ namespace Web_Page_Screensaver
             }
         }
 
-        public void ApplyLanguage(string lang)
+        public void ApplyTexts()
         {
-            currentLanguage = lang;
-            bool isKo = (lang == "ko");
+            btnAddUrl.Text = "＋ Add URL";
+            btnUp.Text = "▲ Move Up";
+            btnDown.Text = "▼ Move Down";
+            btnEdit.Text = "✎ Edit";
+            btnPreview.Text = "👁 Preview";
+            btnDelete.Text = "✕ Delete";
 
-            btnAddUrl.Text = isKo ? "＋ URL 추가" : "＋ Add URL";
-            btnUp.Text = isKo ? "▲ 위로" : "▲ Move Up";
-            btnDown.Text = isKo ? "▼ 아래로" : "▼ Move Down";
-            btnEdit.Text = isKo ? "✎ 수정" : "✎ Edit";
-            btnPreview.Text = isKo ? "👁 미리보기" : "👁 Preview";
-            btnDelete.Text = isKo ? "✕ 삭제" : "✕ Delete";
-
-            lblRotation.Text = isKo ? "전환 주기:" : "Rotate every:";
-            lblSeconds.Text = isKo ? "초" : "sec";
-            lblZoom.Text = isKo ? "화면 배율:" : "Zoom:";
-            cbRandomize.Text = isKo ? "무작위 순서 (Shuffle)" : "Shuffle order";
+            lblRotation.Text = "Rotate every:";
+            lblSeconds.Text = "sec";
+            lblZoom.Text = "Zoom:";
+            cbRandomize.Text = "Shuffle order";
 
             AdjustOptionsLayout();
 
-            urlButtonsTooltip.SetToolTip(btnUp, isKo ? "선택한 URL을 위로 이동합니다 (Alt+▲)" : "Move selected URL up (Alt+▲)");
-            urlButtonsTooltip.SetToolTip(btnDown, isKo ? "선택한 URL을 아래로 이동합니다 (Alt+▼)" : "Move selected URL down (Alt+▼)");
-            urlButtonsTooltip.SetToolTip(btnAddUrl, isKo ? "목록에 새 사이트 URL을 추가하고 인라인으로 편집합니다" : "Add a new URL and edit inline");
-            urlButtonsTooltip.SetToolTip(btnEdit, isKo ? "선택한 URL을 목록에서 직접 수정합니다 (F2 / 더블클릭)" : "Edit selected URL directly in list (F2 / Double-click)");
-            urlButtonsTooltip.SetToolTip(btnPreview, isKo ? "선택한 URL을 실시간 화면보호기 창으로 미리 봅니다" : "Preview selected URL in live screensaver window");
-            urlButtonsTooltip.SetToolTip(btnDelete, isKo ? "선택한 URL을 삭제합니다 (Del)" : "Delete selected URLs (Del)");
+            urlButtonsTooltip.SetToolTip(btnUp, "Move selected URL up (Alt+▲)");
+            urlButtonsTooltip.SetToolTip(btnDown, "Move selected URL down (Alt+▼)");
+            urlButtonsTooltip.SetToolTip(btnAddUrl, "Add a new URL and edit inline");
+            urlButtonsTooltip.SetToolTip(btnEdit, "Edit selected URL directly in list (F2 / Double-click)");
+            urlButtonsTooltip.SetToolTip(btnPreview, "Preview selected URL in live screensaver window");
+            urlButtonsTooltip.SetToolTip(btnDelete, "Delete selected URLs (Del)");
         }
 
         /// <summary>
-        /// Dynamically aligns the horizontal positions of the rotation interval, seconds and screen zoom labels and their controls as label lengths change by language (Korean/English and font size),
+        /// Dynamically aligns the horizontal positions of the rotation interval, seconds and screen zoom labels and their controls to the label widths (text and font size),
         /// so text is never clipped or overlaps the controls.
         /// </summary>
         public void AdjustOptionsLayout()
@@ -369,7 +365,7 @@ namespace Web_Page_Screensaver
                         if (double.TryParse(zoomStr, out double z)) zoom = z / 100.0;
                     }
 
-                    using (var dlg = new PreviewDialog(parsed.Url, zoom, true, currentLanguage))
+                    using (var dlg = new PreviewDialog(parsed.Url, zoom, true))
                     {
                         dlg.ShowDialog(this.FindForm());
                     }
@@ -377,10 +373,9 @@ namespace Web_Page_Screensaver
             }
             else
             {
-                bool isKo = (currentLanguage == "ko");
                 MessageBox.Show(
-                    isKo ? "미리 볼 URL을 목록에서 먼저 선택해 주세요." : "Please select a URL from the list to preview.",
-                    isKo ? "안내" : "Notice",
+                    "Please select a URL from the list to preview.",
+                    "Notice",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
             }

@@ -9,7 +9,7 @@ namespace Web_Page_Screensaver
 {
     static class Program
     {
-        public static readonly string KEY = "Software\\Web-Page-Screensaver";
+        public static readonly string KEY = "Software\\Airframe-Screensaver";
 
         [DllImport("user32.dll")]
         private static extern bool SetProcessDPIAware();
@@ -21,6 +21,17 @@ namespace Web_Page_Screensaver
             if (Environment.OSVersion.Version.Major >= 6)
             {
                 SetProcessDPIAware();
+            }
+
+            // Extract the embedded native WebView2 loader before anything touches WebView2.
+            // On failure WebView2 falls back to its normal search next to the executable.
+            try
+            {
+                EmbeddedWebView2Loader.Configure();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Program] Failed to set up embedded WebView2Loader.dll: {ex.Message}");
             }
 
             Application.EnableVisualStyles();

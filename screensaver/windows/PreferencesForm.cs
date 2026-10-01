@@ -11,7 +11,6 @@ namespace Web_Page_Screensaver
     {
         private PreferencesManager prefsManager = new PreferencesManager();
         private List<PrefsByScreenUserControl> screenUserControls;
-        private string currentLanguage = "ko";
         private bool isThemeEventRegistered = false;
 
         public PreferencesForm()
@@ -48,9 +47,6 @@ namespace Web_Page_Screensaver
             ThemeManager.IsLightTheme = isLight;
             ApplyTheme(isLight);
 
-            // 2. Load the saved language setting (default ko)
-            currentLanguage = !string.IsNullOrEmpty(prefsManager.Language) ? prefsManager.Language : "ko";
-
             if (Screen.AllScreens.Length <= 1)
             {
                 spanScreensButton.Enabled = false;
@@ -63,28 +59,7 @@ namespace Web_Page_Screensaver
                 ArrangeScreenTabs();
             }
 
-            ApplyLanguage(currentLanguage);
-
-            // 3. Check for the latest GitHub release asynchronously in the background
-            CheckForUpdatesAsync();
-        }
-
-        private async void CheckForUpdatesAsync()
-        {
-            try
-            {
-                var release = await UpdateChecker.CheckForUpdateAsync();
-                if (release != null && release.HasUpdate && !IsDisposed && IsHandleCreated)
-                {
-                    BeginInvoke((MethodInvoker)(() =>
-                    {
-                        btnUpdateNotice.Text = $"🚀 New: v{release.LatestVersion}";
-                        btnUpdateNotice.Tag = release.ReleaseUrl;
-                        btnUpdateNotice.Visible = true;
-                    }));
-                }
-            }
-            catch { }
+            ApplyTexts();
         }
 
         private void RegisterThemeEvents()
@@ -170,7 +145,6 @@ namespace Web_Page_Screensaver
 
             btnExport.Invalidate();
             btnImport.Invalidate();
-            btnUpdateNotice.Invalidate();
 
             // 6. Propagate the theme to child screen controls
             if (screenUserControls != null)
@@ -185,35 +159,28 @@ namespace Web_Page_Screensaver
             Invalidate(true);
         }
 
-        public void ApplyLanguage(string lang)
+        public void ApplyTexts()
         {
-            currentLanguage = lang;
-            prefsManager.Language = lang;
-            bool isKo = (lang == "ko");
+            Text = "WebView2 Web Page Screensaver Settings v1.0.6";
+            lblTitle.Text = "WebView2 Web Screensaver v1.0.6";
+            lblSubtitle.Text = "Display websites and live dashboards with Microsoft WebView2";
+            lblMultiScreen.Text = "Multi-Monitor Mode:";
 
-            btnLangKor.IsSelected = isKo;
-            btnLangEng.IsSelected = !isKo;
+            btnExport.Text = "Export";
+            btnImport.Text = "Import";
 
-            Text = isKo ? "웹 화면보호기 설정 v1.0.6" : "WebView2 Web Page Screensaver Settings v1.0.6";
-            lblTitle.Text = isKo ? "WebView2 웹 화면보호기 v1.0.6" : "WebView2 Web Screensaver v1.0.6";
-            lblSubtitle.Text = isKo ? "웹사이트 및 대시보드를 고해상도 화면보호기로 출력합니다" : "Display websites and live dashboards with Microsoft WebView2";
-            lblMultiScreen.Text = isKo ? "다중 모니터 모드:" : "Multi-Monitor Mode:";
+            spanScreensButton.Text = "Span (All)";
+            mirrorScreensButton.Text = "Mirror (Clone)";
+            separateScreensButton.Text = "Separate (Each its own list)";
 
-            btnExport.Text = isKo ? "백업" : "Export";
-            btnImport.Text = isKo ? "복원" : "Import";
+            screenModeTooltip.SetToolTip(spanScreensButton, "Spread a single screen across all monitors");
+            screenModeTooltip.SetToolTip(mirrorScreensButton, "Same websites shown on all monitors");
+            screenModeTooltip.SetToolTip(separateScreensButton, "Configure individual URL list for each screen");
 
-            spanScreensButton.Text = isKo ? "확장 (전체 통합)" : "Span (All)";
-            mirrorScreensButton.Text = isKo ? "복제 (동일 출력)" : "Mirror (Clone)";
-            separateScreensButton.Text = isKo ? "개별 (모니터별 독립)" : "Separate (Each its own list)";
-
-            screenModeTooltip.SetToolTip(spanScreensButton, isKo ? "모든 모니터를 하나의 큰 화면으로 합쳐서 표시합니다" : "Spread a single screen across all monitors");
-            screenModeTooltip.SetToolTip(mirrorScreensButton, isKo ? "모든 모니터에 똑같은 웹사이트를 동시에 복제 출력합니다" : "Same websites shown on all monitors");
-            screenModeTooltip.SetToolTip(separateScreensButton, isKo ? "각 모니터마다 서로 다른 웹사이트 목록을 설정합니다" : "Configure individual URL list for each screen");
-
-            cbCloseOnActivity.Text = isKo ? "마우스 움직임 시 종료" : "Exit on mouse move";
-            cbMuteAudio.Text = isKo ? "오디오 음소거" : "Mute Audio";
-            cbInPrivate.Text = isKo ? "시크릿 모드 (InPrivate)" : "InPrivate Browsing";
-            cbClockOverlay.Text = isKo ? "시계 HUD 오버레이" : "Clock HUD Overlay";
+            cbCloseOnActivity.Text = "Exit on mouse move";
+            cbMuteAudio.Text = "Mute Audio";
+            cbInPrivate.Text = "InPrivate Browsing";
+            cbClockOverlay.Text = "Clock HUD Overlay";
 
             // Refresh the clock HUD corner position combo box items (preserving the selection)
             int selectedClockIndex = cmbClockPosition.SelectedIndex >= 0
@@ -221,54 +188,42 @@ namespace Web_Page_Screensaver
                 : (int)prefsManager.ClockPositionPref;
 
             cmbClockPosition.Items.Clear();
-            if (isKo)
-            {
-                cmbClockPosition.Items.AddRange(new object[] {
-                    "우측 하단 (기본)",
-                    "좌측 하단",
-                    "우측 상단",
-                    "좌측 상단"
-                });
-            }
-            else
-            {
-                cmbClockPosition.Items.AddRange(new object[] {
-                    "Bottom-Right (Default)",
-                    "Bottom-Left",
-                    "Top-Right",
-                    "Top-Left"
-                });
-            }
+            cmbClockPosition.Items.AddRange(new object[] {
+                "Bottom-Right (Default)",
+                "Bottom-Left",
+                "Top-Right",
+                "Top-Left"
+            });
             cmbClockPosition.SelectedIndex = (selectedClockIndex >= 0 && selectedClockIndex < cmbClockPosition.Items.Count)
                 ? selectedClockIndex
                 : 0;
 
-            cancelButton.Text = isKo ? "취소" : "Cancel";
-            okButton.Text = isKo ? "저장 및 적용" : "Save & Apply";
+            cancelButton.Text = "Cancel";
+            okButton.Text = "Save & Apply";
 
-            // Dynamically align top/bottom controls as text length changes by language (to avoid overlaps)
+            // Dynamically align top/bottom controls to the text widths (to avoid overlaps)
             AdjustResponsiveLayout();
 
             // Update tab names
             UpdateTabTitles();
 
-            // Apply the language to child screen controls
+            // Apply the texts to child screen controls
             if (screenUserControls != null)
             {
                 foreach (var ctrl in screenUserControls)
                 {
-                    ctrl.ApplyLanguage(lang);
+                    ctrl.ApplyTexts();
                 }
             }
         }
 
         /// <summary>
-        /// Dynamically aligns the multi-monitor radio buttons and bottom option controls as the language and text widths change,
+        /// Dynamically aligns the multi-monitor radio buttons and bottom option controls to the text widths,
         /// to prevent overlapping and clipped text.
         /// </summary>
         public void AdjustResponsiveLayout()
         {
-            // 1. Dynamically align the multi-monitor label and radio buttons (fixes English overlap)
+            // 1. Dynamically align the multi-monitor label and radio buttons
             lblMultiScreen.AutoSize = true;
             spanScreensButton.AutoSize = true;
             mirrorScreensButton.AutoSize = true;
@@ -301,8 +256,6 @@ namespace Web_Page_Screensaver
             {
                 int headerRight = headerPanel.Width - 8;
                 btnGithub.Location = new Point(headerRight - btnGithub.Width, 11);
-                langPanel.Location = new Point(btnGithub.Left - 8 - langPanel.Width, 11);
-                btnUpdateNotice.Location = new Point(langPanel.Left - 8 - btnUpdateNotice.Width, 11);
             }
 
             // 4. Align the OK/Cancel buttons on the right and the Backup/Restore buttons just above them (right edges aligned at 8px)
@@ -318,16 +271,6 @@ namespace Web_Page_Screensaver
             btnImport.Size = new Size(okButton.Width, 28);
         }
 
-        private void btnLangKor_Click(object sender, EventArgs e)
-        {
-            ApplyLanguage("ko");
-        }
-
-        private void btnLangEng_Click(object sender, EventArgs e)
-        {
-            ApplyLanguage("en");
-        }
-
         /// <summary>
         /// For automatic build-time screenshots, injects a safe example URL instead of a personal URL and tidies the screen.
         /// </summary>
@@ -341,19 +284,7 @@ namespace Web_Page_Screensaver
             cbClockOverlay.Checked = true;
             cmbClockPosition.Enabled = true;
             cmbClockPosition.SelectedIndex = 0;
-            btnUpdateNotice.Visible = false;
-            ApplyLanguage("en");
-        }
-
-        /// <summary>
-        /// Enables the new-version update notification badge for screenshots and demos.
-        /// </summary>
-        public void SetUpdateNoticeForDemo(string version = "1.0.7", string url = "https://github.com/muro-dot/Webview2_WebPage_Screensaver/releases")
-        {
-            btnUpdateNotice.Text = $"🚀 New: v{version}";
-            btnUpdateNotice.Tag = url;
-            btnUpdateNotice.Visible = true;
-            btnUpdateNotice.BringToFront();
+            ApplyTexts();
         }
 
         private void LoadValuesForTab(int screenNum)
@@ -371,33 +302,31 @@ namespace Web_Page_Screensaver
                 int idx = currentPrefsUserControl.cmbZoom.Items.IndexOf(zoomStr);
                 currentPrefsUserControl.cmbZoom.SelectedIndex = idx >= 0 ? idx : 1;
 
-                currentPrefsUserControl.ApplyLanguage(currentLanguage);
+                currentPrefsUserControl.ApplyTexts();
             }
         }
 
         private void UpdateTabTitles()
         {
-            bool isKo = (currentLanguage == "ko");
             switch (prefsManager.MultiScreenMode)
             {
                 case PreferencesManager.MultiScreenModeItem.Span:
                     if (screenTabControl.TabPages.Count > 0)
-                        screenTabControl.TabPages[0].Text = isKo ? "통합 화면" : "Composite Display";
+                        screenTabControl.TabPages[0].Text = "Composite Display";
                     break;
 
                 case PreferencesManager.MultiScreenModeItem.Mirror:
                     if (screenTabControl.TabPages.Count > 0)
-                        screenTabControl.TabPages[0].Text = isKo ? "모든 모니터 (복제)" : "All Displays (Mirrored)";
+                        screenTabControl.TabPages[0].Text = "All Displays (Mirrored)";
                     break;
 
                 case PreferencesManager.MultiScreenModeItem.Separate:
                     for (int i = 0; i < screenTabControl.TabPages.Count; i++)
                     {
                         string primaryIndicator = (i < Screen.AllScreens.Length && Screen.AllScreens[i].Primary)
-                            ? (isKo ? " (기본)" : " (Primary)")
+                            ? " (Primary)"
                             : string.Empty;
-                        string prefix = isKo ? "화면" : "Screen";
-                        screenTabControl.TabPages[i].Text = string.Format("{0} {1}{2}", prefix, i + 1, primaryIndicator);
+                        screenTabControl.TabPages[i].Text = string.Format("Screen {0}{1}", i + 1, primaryIndicator);
                     }
                     break;
             }
@@ -515,7 +444,6 @@ namespace Web_Page_Screensaver
                 {
                     prefsManager.ClockPositionPref = (PreferencesManager.ClockPosition)cmbClockPosition.SelectedIndex;
                 }
-                prefsManager.Language = currentLanguage;
 
                 for (var i = 0; i < screenUserControls.Count; i++)
                 {
@@ -568,7 +496,7 @@ namespace Web_Page_Screensaver
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PreferencesForm.OnClosed] 설정 저장 중 오류: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[PreferencesForm.OnClosed] Error saving settings: {ex.Message}");
                 }
             }
 
@@ -578,12 +506,12 @@ namespace Web_Page_Screensaver
         private void btnExport_Click(object sender, EventArgs e)
         {
             readBackValuesFromUI();
-            ConfigExportImport.ExportToFile(prefsManager, this, currentLanguage);
+            ConfigExportImport.ExportToFile(prefsManager, this);
         }
 
         private void btnImport_Click(object sender, EventArgs e)
         {
-            if (ConfigExportImport.ImportFromFile(prefsManager, this, currentLanguage))
+            if (ConfigExportImport.ImportFromFile(prefsManager, this))
             {
                 cbCloseOnActivity.Checked = prefsManager.CloseOnActivity;
                 cbMuteAudio.Checked = prefsManager.MuteAudio;
@@ -591,19 +519,9 @@ namespace Web_Page_Screensaver
                 cbClockOverlay.Checked = prefsManager.ShowClockOverlay;
                 cmbClockPosition.Enabled = cbClockOverlay.Checked;
                 cmbClockPosition.SelectedIndex = (int)prefsManager.ClockPositionPref;
-                currentLanguage = prefsManager.Language ?? "ko";
                 SetMultiScreenButtonFromMode();
                 ArrangeScreenTabs();
-                ApplyLanguage(currentLanguage);
-            }
-        }
-
-        private void btnUpdateNotice_Click(object sender, EventArgs e)
-        {
-            string url = btnUpdateNotice.Tag?.ToString();
-            if (!string.IsNullOrEmpty(url))
-            {
-                try { System.Diagnostics.Process.Start(url); } catch { }
+                ApplyTexts();
             }
         }
 
@@ -611,7 +529,7 @@ namespace Web_Page_Screensaver
         {
             try
             {
-                System.Diagnostics.Process.Start("https://github.com/muro-dot/Webview2_WebPage_Screensaver");
+                System.Diagnostics.Process.Start("https://github.com/fireflycons/airframe");
             }
             catch { }
         }

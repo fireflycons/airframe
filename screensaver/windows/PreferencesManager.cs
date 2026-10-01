@@ -15,7 +15,6 @@ namespace Web_Page_Screensaver
         private const string INTERVAL_PREF = "RotationInterval";
         private const string RANDOMIZE_PREF = "RandomOrder";
         private const string CLOSE_ON_ACTIVITY_PREF = "CloseOnActivity";
-        private const string LANGUAGE_PREF = "Language";
         private const string MUTE_AUDIO_PREF = "MuteAudio";
         private const string INPRIVATE_PREF = "InPrivate";
         private const string CLOCK_OVERLAY_PREF = "ShowClockOverlay";
@@ -25,19 +24,17 @@ namespace Web_Page_Screensaver
         private const string SCREEN_SPECIFIC_PREF_NAME_FORMATSTRING = "{0}Screen{1}";
 
         private const string MULTISCREEN_PREF_DEFAULT = "Separate";
-        private const string URL_PREF_PRIMARYSCREEN_DEFAULT = "https://www.google.com/trends/hottrends/visualize?nrow=5&ncol=5 https://screensaver.twingly.com/";
+        private const string URL_PREF_PRIMARYSCREEN_DEFAULT = "http://localhost:7700/";
         private const string URL_PREF_NONPRIMARYSCREEN_DEFAULT = "";
         private const string INTERVAL_PREF_DEFAULT = "30";
         private const string RANDOMIZE_PREF_DEFAULT = "False";
         private const string CLOSE_ON_ACTIVITY_PREF_DEFAULT = "True";
-        private const string LANGUAGE_PREF_DEFAULT = "ko";
         private const string MUTE_AUDIO_PREF_DEFAULT = "True";
         private const string INPRIVATE_PREF_DEFAULT = "False";
         private const string CLOCK_OVERLAY_PREF_DEFAULT = "False";
         private const string CLOCK_POSITION_PREF_DEFAULT = "BottomRight";
         private const string ZOOM_FACTOR_PREF_DEFAULT = "100";
 
-        public string Language { get; set; }
         public bool MuteAudio { get; set; }
         public bool InPrivate { get; set; }
         public bool ShowClockOverlay { get; set; }
@@ -331,7 +328,6 @@ namespace Web_Page_Screensaver
         {
             Reg.SetValue(MULTISCREEN_PREF, MultiScreenMode);
             Reg.SetValue(CLOSE_ON_ACTIVITY_PREF, CloseOnActivity);
-            Reg.SetValue(LANGUAGE_PREF, Language ?? LANGUAGE_PREF_DEFAULT);
             Reg.SetValue(MUTE_AUDIO_PREF, MuteAudio);
             Reg.SetValue(INPRIVATE_PREF, InPrivate);
             Reg.SetValue(CLOCK_OVERLAY_PREF, ShowClockOverlay);
@@ -348,7 +344,6 @@ namespace Web_Page_Screensaver
         {
             MultiScreenMode = (MultiScreenModeItem)Enum.Parse(typeof(MultiScreenModeItem), (string)Reg.GetValue(MULTISCREEN_PREF, MULTISCREEN_PREF_DEFAULT));
             CloseOnActivity = bool.Parse((string)Reg.GetValue(CLOSE_ON_ACTIVITY_PREF, CLOSE_ON_ACTIVITY_PREF_DEFAULT));
-            Language = (string)Reg.GetValue(LANGUAGE_PREF, LANGUAGE_PREF_DEFAULT);
             MuteAudio = bool.Parse((string)Reg.GetValue(MUTE_AUDIO_PREF, MUTE_AUDIO_PREF_DEFAULT));
             InPrivate = bool.Parse((string)Reg.GetValue(INPRIVATE_PREF, INPRIVATE_PREF_DEFAULT));
             ShowClockOverlay = bool.Parse((string)Reg.GetValue(CLOCK_OVERLAY_PREF, CLOCK_OVERLAY_PREF_DEFAULT));

@@ -12,13 +12,10 @@ namespace Web_Page_Screensaver
         /// When the internet is down or the URL can't be reached, generates a polished neon dark digital clock
         /// that works as a screensaver instead of an ugly browser error page.
         /// </summary>
-        public static string GetFallbackClockHtml(string failedUrl, string language)
+        public static string GetFallbackClockHtml(string failedUrl)
         {
-            bool isKo = (language == "ko");
-            string statusTitle = isKo ? "네트워크 연결 대기 중" : "Waiting for Network Connection";
-            string statusSub = isKo 
-                ? "페이지 로드 실패: 재시도 대기 중..." 
-                : "Failed to load page. Retrying automatically...";
+            string statusTitle = "Waiting for Network Connection";
+            string statusSub = "Failed to load page. Retrying automatically...";
 
             return @"<!DOCTYPE html>
 <html lang=""en"">

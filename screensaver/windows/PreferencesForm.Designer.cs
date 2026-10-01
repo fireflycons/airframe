@@ -34,13 +34,9 @@ namespace Web_Page_Screensaver
         {
             this.components = new System.ComponentModel.Container();
             this.headerPanel = new System.Windows.Forms.Panel();
-            this.langPanel = new System.Windows.Forms.Panel();
-            this.btnLangKor = new Web_Page_Screensaver.ModernButton();
-            this.btnLangEng = new Web_Page_Screensaver.ModernButton();
             this.btnGithub = new Web_Page_Screensaver.ModernButton();
             this.btnExport = new Web_Page_Screensaver.ModernButton();
             this.btnImport = new Web_Page_Screensaver.ModernButton();
-            this.btnUpdateNotice = new Web_Page_Screensaver.ModernButton();
             this.lblSubtitle = new System.Windows.Forms.Label();
             this.lblTitle = new System.Windows.Forms.Label();
             this.multiScreenCard = new Web_Page_Screensaver.ModernCard();
@@ -61,7 +57,6 @@ namespace Web_Page_Screensaver
             this.okButton = new Web_Page_Screensaver.ModernButton();
             this.screenModeTooltip = new System.Windows.Forms.ToolTip(this.components);
             this.headerPanel.SuspendLayout();
-            this.langPanel.SuspendLayout();
             this.multiScreenCard.SuspendLayout();
             this.screenTabControl.SuspendLayout();
             this.screenTabPage1.SuspendLayout();
@@ -73,8 +68,6 @@ namespace Web_Page_Screensaver
             this.headerPanel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.headerPanel.BackColor = System.Drawing.Color.Transparent;
-            this.headerPanel.Controls.Add(this.btnUpdateNotice);
-            this.headerPanel.Controls.Add(this.langPanel);
             this.headerPanel.Controls.Add(this.btnGithub);
             this.headerPanel.Controls.Add(this.lblSubtitle);
             this.headerPanel.Controls.Add(this.lblTitle);
@@ -82,26 +75,7 @@ namespace Web_Page_Screensaver
             this.headerPanel.Name = "headerPanel";
             this.headerPanel.Size = new System.Drawing.Size(812, 56);
             this.headerPanel.TabIndex = 0;
-            // 
-            // btnUpdateNotice
-            // 
-            this.btnUpdateNotice.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnUpdateNotice.BackColor = System.Drawing.Color.Transparent;
-            this.btnUpdateNotice.BorderRadius = 6;
-            this.btnUpdateNotice.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnUpdateNotice.FlatAppearance.BorderSize = 0;
-            this.btnUpdateNotice.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnUpdateNotice.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
-            this.btnUpdateNotice.Location = new System.Drawing.Point(484, 11);
-            this.btnUpdateNotice.Name = "btnUpdateNotice";
-            this.btnUpdateNotice.Size = new System.Drawing.Size(108, 30);
-            this.btnUpdateNotice.Style = Web_Page_Screensaver.ModernButtonStyle.Primary;
-            this.btnUpdateNotice.TabIndex = 6;
-            this.btnUpdateNotice.Text = "🚀 New Update";
-            this.btnUpdateNotice.UseVisualStyleBackColor = false;
-            this.btnUpdateNotice.Visible = false;
-            this.btnUpdateNotice.Click += new System.EventHandler(this.btnUpdateNotice_Click);
-            // 
+            //
             // btnExport
             // 
             this.btnExport.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
@@ -137,53 +111,7 @@ namespace Web_Page_Screensaver
             this.btnImport.Text = "Import";
             this.btnImport.UseVisualStyleBackColor = false;
             this.btnImport.Click += new System.EventHandler(this.btnImport_Click);
-            // 
-            // langPanel
-            // 
-            this.langPanel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.langPanel.Controls.Add(this.btnLangKor);
-            this.langPanel.Controls.Add(this.btnLangEng);
-            this.langPanel.Location = new System.Drawing.Point(600, 11);
-            this.langPanel.Name = "langPanel";
-            this.langPanel.Size = new System.Drawing.Size(126, 30);
-            this.langPanel.TabIndex = 3;
-            // 
-            // btnLangKor
-            // 
-            this.btnLangKor.BackColor = System.Drawing.Color.Transparent;
-            this.btnLangKor.BorderRadius = 4;
-            this.btnLangKor.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnLangKor.FlatAppearance.BorderSize = 0;
-            this.btnLangKor.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnLangKor.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
-            this.btnLangKor.IsSelected = true;
-            this.btnLangKor.Location = new System.Drawing.Point(0, 0);
-            this.btnLangKor.Name = "btnLangKor";
-            this.btnLangKor.Size = new System.Drawing.Size(60, 30);
-            this.btnLangKor.Style = Web_Page_Screensaver.ModernButtonStyle.Segment;
-            this.btnLangKor.TabIndex = 0;
-            this.btnLangKor.Text = "한국어";
-            this.btnLangKor.UseVisualStyleBackColor = false;
-            this.btnLangKor.Click += new System.EventHandler(this.btnLangKor_Click);
-            // 
-            // btnLangEng
-            // 
-            this.btnLangEng.BackColor = System.Drawing.Color.Transparent;
-            this.btnLangEng.BorderRadius = 4;
-            this.btnLangEng.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnLangEng.FlatAppearance.BorderSize = 0;
-            this.btnLangEng.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnLangEng.Font = new System.Drawing.Font("Segoe UI", 8.5F, System.Drawing.FontStyle.Bold);
-            this.btnLangEng.IsSelected = false;
-            this.btnLangEng.Location = new System.Drawing.Point(64, 0);
-            this.btnLangEng.Name = "btnLangEng";
-            this.btnLangEng.Size = new System.Drawing.Size(60, 30);
-            this.btnLangEng.Style = Web_Page_Screensaver.ModernButtonStyle.Segment;
-            this.btnLangEng.TabIndex = 1;
-            this.btnLangEng.Text = "ENG";
-            this.btnLangEng.UseVisualStyleBackColor = false;
-            this.btnLangEng.Click += new System.EventHandler(this.btnLangEng_Click);
-            // 
+            //
             // btnGithub
             // 
             this.btnGithub.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
@@ -487,7 +415,6 @@ namespace Web_Page_Screensaver
             this.Load += new System.EventHandler(this.PreferencesForm_Load);
             this.headerPanel.ResumeLayout(false);
             this.headerPanel.PerformLayout();
-            this.langPanel.ResumeLayout(false);
             this.multiScreenCard.ResumeLayout(false);
             this.multiScreenCard.PerformLayout();
             this.screenTabControl.ResumeLayout(false);
@@ -503,13 +430,9 @@ namespace Web_Page_Screensaver
         private System.Windows.Forms.Panel headerPanel;
         private System.Windows.Forms.Label lblTitle;
         private System.Windows.Forms.Label lblSubtitle;
-        private System.Windows.Forms.Panel langPanel;
-        private ModernButton btnLangKor;
-        private ModernButton btnLangEng;
         private ModernButton btnGithub;
         private ModernButton btnExport;
         private ModernButton btnImport;
-        private ModernButton btnUpdateNotice;
         private ModernCard multiScreenCard;
         private System.Windows.Forms.Label lblMultiScreen;
         private ModernRadioButton spanScreensButton;

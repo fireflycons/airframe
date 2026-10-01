@@ -13,7 +13,6 @@ namespace Web_Page_Screensaver
     {
         public string Version { get; set; } = "1.0.6";
         public DateTime ExportedAt { get; set; } = DateTime.Now;
-        public string Language { get; set; }
         public string MultiScreenMode { get; set; }
         public bool CloseOnActivity { get; set; }
         public bool MuteAudio { get; set; }
@@ -36,12 +35,11 @@ namespace Web_Page_Screensaver
         /// <summary>
         /// Saves the current settings to a JSON file chosen through a dialog.
         /// </summary>
-        public static bool ExportToFile(PreferencesManager prefs, IWin32Window owner, string language)
+        public static bool ExportToFile(PreferencesManager prefs, IWin32Window owner)
         {
-            bool isKo = (language == "ko");
             using (var sfd = new SaveFileDialog())
             {
-                sfd.Title = isKo ? "설정 파일 내보내기 (JSON)" : "Export Settings to JSON";
+                sfd.Title = "Export Settings to JSON";
                 sfd.Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*";
                 sfd.FileName = $"WebScreensaver_Backup_{DateTime.Now:yyyyMMdd}.json";
 
@@ -51,7 +49,6 @@ namespace Web_Page_Screensaver
                     {
                         var dto = new ScreensaverConfigDto
                         {
-                            Language = prefs.Language,
                             MultiScreenMode = prefs.MultiScreenMode.ToString(),
                             CloseOnActivity = prefs.CloseOnActivity,
                             MuteAudio = prefs.MuteAudio,
@@ -68,8 +65,8 @@ namespace Web_Page_Screensaver
                         File.WriteAllText(sfd.FileName, json, System.Text.Encoding.UTF8);
 
                         MessageBox.Show(
-                            isKo ? "설정 파일이 성공적으로 저장되었습니다." : "Settings exported successfully.",
-                            isKo ? "성공" : "Success",
+                            "Settings exported successfully.",
+                            "Success",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Information);
                         return true;
@@ -77,8 +74,8 @@ namespace Web_Page_Screensaver
                     catch (Exception ex)
                     {
                         MessageBox.Show(
-                            (isKo ? "설정 저장 중 오류가 발생했습니다: " : "Error exporting settings: ") + ex.Message,
-                            isKo ? "오류" : "Error",
+                            "Error exporting settings: " + ex.Message,
+                            "Error",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Error);
                     }
@@ -90,12 +87,11 @@ namespace Web_Page_Screensaver
         /// <summary>
         /// Reads settings from a JSON file and applies them to PreferencesManager.
         /// </summary>
-        public static bool ImportFromFile(PreferencesManager prefs, IWin32Window owner, string language)
+        public static bool ImportFromFile(PreferencesManager prefs, IWin32Window owner)
         {
-            bool isKo = (language == "ko");
             using (var ofd = new OpenFileDialog())
             {
-                ofd.Title = isKo ? "설정 파일 가져오기 (JSON)" : "Import Settings from JSON";
+                ofd.Title = "Import Settings from JSON";
                 ofd.Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*";
 
                 if (ofd.ShowDialog(owner) == DialogResult.OK)
@@ -109,7 +105,6 @@ namespace Web_Page_Screensaver
                             throw new Exception("Invalid configuration file format.");
                         }
 
-                        if (!string.IsNullOrEmpty(dto.Language)) prefs.Language = dto.Language;
                         if (!string.IsNullOrEmpty(dto.MultiScreenMode))
                         {
                             if (Enum.TryParse(dto.MultiScreenMode, out PreferencesManager.MultiScreenModeItem mode))
@@ -139,8 +134,8 @@ namespace Web_Page_Screensaver
                         prefs.SavePreferences();
 
                         MessageBox.Show(
-                            isKo ? "설정을 성공적으로 불러와 저장했습니다. 설정창에 반영됩니다." : "Settings imported and applied successfully.",
-                            isKo ? "성공" : "Success",
+                            "Settings imported and applied successfully.",
+                            "Success",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Information);
                         return true;
@@ -148,8 +143,8 @@ namespace Web_Page_Screensaver
                     catch (Exception ex)
                     {
                         MessageBox.Show(
-                            (isKo ? "설정 불러오기 중 오류가 발생했습니다: " : "Error importing settings: ") + ex.Message,
-                            isKo ? "오류" : "Error",
+                            "Error importing settings: " + ex.Message,
+                            "Error",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Error);
                     }

@@ -210,8 +210,7 @@ namespace Web_Page_Screensaver
         Primary,
         Secondary,
         Danger,
-        Ghost,
-        Segment
+        Ghost
     }
 
     public class ModernButton : Button
@@ -220,7 +219,6 @@ namespace Web_Page_Screensaver
         private int borderRadius = 6;
         private bool isHovered = false;
         private bool isPressed = false;
-        private bool isSelected = false;
 
         public ModernButtonStyle Style
         {
@@ -232,12 +230,6 @@ namespace Web_Page_Screensaver
         {
             get => borderRadius;
             set { borderRadius = value; Invalidate(); }
-        }
-
-        public bool IsSelected
-        {
-            get => isSelected;
-            set { isSelected = value; Invalidate(); }
         }
 
         public ModernButton()
@@ -367,20 +359,6 @@ namespace Web_Page_Screensaver
                         bgColor = colors.SecondaryBtn;
                         textColor = ThemeManager.IsLightTheme ? Color.FromArgb(195, 40, 40) : Color.FromArgb(248, 113, 113);
                         borderColor = colors.SecondaryBtnBorder;
-                    }
-                    break;
-
-                case ModernButtonStyle.Segment:
-                    if (isSelected)
-                    {
-                        bgColor = colors.Accent;
-                        textColor = Color.White;
-                    }
-                    else
-                    {
-                        bgColor = isHovered ? colors.SecondaryBtnHover : colors.SecondaryBtn;
-                        textColor = isHovered ? colors.TextPrimary : colors.TextSecondary;
-                        borderColor = colors.CardBorder;
                     }
                     break;
 

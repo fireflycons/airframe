@@ -86,7 +86,7 @@ namespace Web_Page_Screensaver
             }
 
             // [Fix 2] Save WebView2 temporary data in a safe folder (LocalAppData) with no permission issues
-            string userDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LibraryScreensaver_Data");
+            string userDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Airframe-Screensaver");
             
             // InPrivate mode and security options
             CoreWebView2EnvironmentOptions envOptions = null;
@@ -112,7 +112,7 @@ namespace Web_Page_Screensaver
                     if (!e.IsSuccess && e.WebErrorStatus != CoreWebView2WebErrorStatus.OperationCanceled)
                     {
                         // On a network error or server outage, render an elegant modern digital clock fallback screen
-                        string fallbackHtml = FallbackHtmlProvider.GetFallbackClockHtml(currentLoadedUrl, prefsManager.Language);
+                        string fallbackHtml = FallbackHtmlProvider.GetFallbackClockHtml(currentLoadedUrl);
                         webView.CoreWebView2.NavigateToString(fallbackHtml);
                     }
                     else if (e.IsSuccess)
