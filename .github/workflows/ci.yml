@@ -33,5 +33,5 @@ jobs:
       # Mirrors "make test" without repeating the lint.
       - name: Test
         run: |
-          go test -v -race ./...
-          go test -v -count=20 ./internal/core/service
+          go test -race ./...
+          go test -count=20 ./internal/core/service
