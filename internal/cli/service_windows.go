@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/fireflycons/airframe/internal/app"
 	"github.com/spf13/cobra"
@@ -18,6 +19,10 @@ import (
 )
 
 const serviceName = "airframe"
+
+// stopTimeout bounds how long uninstall waits for a running service to stop.
+// The app's HTTP shutdown takes up to 5 seconds.
+const stopTimeout = 20 * time.Second
 
 // handler runs the app under the Windows service control manager.
 type handler struct {
@@ -138,9 +143,41 @@ func uninstall() error {
 		_ = s.Close()
 	}()
 
+	if err := stopService(s); err != nil {
+		return err
+	}
 	if err := s.Delete(); err != nil {
 		return err
 	}
 	fmt.Printf("service %q removed\n", serviceName)
+	return nil
+}
+
+// stopService stops s if it is running and waits for it to reach the Stopped state.
+func stopService(s *mgr.Service) error {
+	st, err := s.Query()
+	if err != nil {
+		return fmt.Errorf("querying service %q: %w", serviceName, err)
+	}
+	if st.State == svc.Stopped {
+		return nil
+	}
+	if st.State != svc.StopPending {
+		if _, err := s.Control(svc.Stop); err != nil && !errors.Is(err, windows.ERROR_SERVICE_NOT_ACTIVE) {
+			return fmt.Errorf("stopping service %q: %w", serviceName, err)
+		}
+		fmt.Printf("stopping service %q\n", serviceName)
+	}
+
+	deadline := time.Now().Add(stopTimeout)
+	for st.State != svc.Stopped {
+		if time.Now().After(deadline) {
+			return fmt.Errorf("service %q did not stop within %s", serviceName, stopTimeout)
+		}
+		time.Sleep(250 * time.Millisecond)
+		if st, err = s.Query(); err != nil {
+			return fmt.Errorf("querying service %q: %w", serviceName, err)
+		}
+	}
 	return nil
 }
