@@ -6,8 +6,10 @@ SCR_NAME := Webview2_WebPage_Screensaver
 SCR_OUT  := $(SCR_DIR)/bin/Release
 VSWHERE  := C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe
 MSBUILD  ?= $(shell "$(VSWHERE)" -nologo -latest -requires Microsoft.Component.MSBuild -find "MSBuild/**/Bin/MSBuild.exe")
+MAKENSIS ?= C:/Program Files (x86)/NSIS/makensis.exe
+VERSION  ?= $(shell git describe --tags --always --dirty)
 
-.PHONY: lint lint-windows lint-linux test build build-windows-amd64 build-linux-amd64 build-darwin-arm64 build-screensaver
+.PHONY: lint lint-windows lint-linux test build build-windows-amd64 build-linux-amd64 build-darwin-arm64 build-screensaver installer
 
 # Lint both platform variants whatever the host, so the build-tagged files
 # in internal/cli are always checked.
@@ -53,7 +55,12 @@ build-screensaver:
 	"$(SCR_DIR)/nuget.exe" restore $(SCR_DIR)/packages.config -PackagesDirectory $(SCR_DIR)/packages -NonInteractive
 	"$(MSBUILD)" $(SCR_DIR)/$(SCR_NAME).csproj -p:Configuration=Release -p:PostBuildEvent= -nologo -v:minimal
 	powershell -NoProfile -Command "New-Item -ItemType Directory -Force bin/windows-amd64 | Out-Null; Copy-Item $(SCR_OUT)/$(SCR_NAME).exe bin/windows-amd64/$(SCR_NAME).scr"
+
+# The NSIS installer bundles the Windows binary and the screensaver into
+# bin/windows-amd64/airframe-setup.exe. It needs the NScurl and nsJSON plugins.
+installer: build-windows-amd64 build-screensaver
+	"$(MAKENSIS)" -V2 -WX -DVERSION=$(VERSION) installer/windows/airframe.nsi
 else
-build-screensaver:
-	@echo "Skipping build-screensaver: requires a Windows host"
+build-screensaver installer:
+	@echo "Skipping $@: requires a Windows host"
 endif
