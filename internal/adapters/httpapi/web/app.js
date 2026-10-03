@@ -23,6 +23,25 @@ const ident = (a) => a.flight || a.icao.toUpperCase();
 const isEmergencyVehicle = (a) => a.category === 'C1';
 const isVehicle = (a) => a.category === 'C1' || a.category === 'C2';
 const isGround = (a) => a.onGround || isVehicle(a);
+// Radar symbol for each ADS-B emitter category. A1 is a light aircraft
+// (< 15,500 lb), i.e. general aviation.
+const CATEGORY_SYMBOLS = {
+  A1: 'light-top', A2: 'plane-top', A3: 'plane-top', A4: 'plane-top', A5: 'plane-top',
+  A6: 'fast-top', A7: 'heli-top',
+  B1: 'glider-top', B2: 'balloon-top', B3: 'parachute-top', B4: 'hang-glider-top',
+  B6: 'drone-top', B7: 'rocket-top',
+  C1: 'vehicle-top', C2: 'vehicle-top', C3: 'obstacle-top', C4: 'obstacle-top', C5: 'obstacle-top',
+};
+
+// A GA flight usually uses its registration as its callsign.
+const normReg = (s) => (s || '').replaceAll('-', '').toUpperCase();
+const isRegistrationCallsign = (a) => !!a.registration && normReg(a.flight) === normReg(a.registration);
+
+function radarSymbol(a) {
+  const symbol = CATEGORY_SYMBOLS[a.category];
+  if (symbol) return `#${symbol}`;
+  return isRegistrationCallsign(a) ? '#light-top' : '#plane-top';
+}
 
 function verticalRate(a) {
   return a.barometricClimbRate || a.geometricClimbRate;
@@ -163,8 +182,7 @@ function renderRadar(data, sorted, nearest) {
     const g = svg('g', { class: classes.join(' ') });
     const glyph = svg('g', { transform: `translate(${x} ${y}) rotate(${a.track})` });
     const size = a === nearest ? 0.11 : 0.08;
-    const symbol = isVehicle(a) ? '#vehicle-top' : '#plane-top';
-    glyph.append(svg('use', { href: symbol, x: -size / 2, y: -size / 2, width: size, height: size }));
+    glyph.append(svg('use', { href: radarSymbol(a), x: -size / 2, y: -size / 2, width: size, height: size }));
     g.append(glyph);
     // Ground traffic clusters at airports, where labels would be unreadable.
     if (!isGround(a)) {
