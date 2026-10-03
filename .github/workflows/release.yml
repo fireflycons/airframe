@@ -1,0 +1,172 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  # Release builds: static, with no local paths or symbol tables.
+  CGO_ENABLED: "0"
+  GOFLAGS: -trimpath
+  IMAGE: fireflycons/airframe
+
+jobs:
+  version:
+    name: Read version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: v
+        name: Check VERSION.txt against existing tags
+        run: |
+          version=$(tr -d '[:space:]' < VERSION.txt)
+          if [ -z "$version" ]; then
+            echo "::error file=VERSION.txt::VERSION.txt is empty"
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
+            echo "::error file=VERSION.txt::Tag v$version already exists"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  binaries:
+    name: Build binaries
+    needs: version
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        run: make build-windows-amd64 build-linux-amd64 build-darwin-arm64
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          zip -j "dist/airframe_${VERSION}_windows_amd64.zip" bin/windows-amd64/airframe.exe
+          tar -czf "dist/airframe_${VERSION}_linux_amd64.tar.gz" -C bin/linux-amd64 airframe
+          tar -czf "dist/airframe_${VERSION}_darwin_arm64.tar.gz" -C bin/darwin-arm64 airframe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: dist/*
+          retention-days: 1
+          if-no-files-found: error
+
+  installer:
+    name: Build Windows installer
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: nuget/setup-nuget@v2
+
+      - uses: ./.github/actions/setup-nsis
+
+      - name: Build installer
+        run: make installer NUGET=nuget VERSION=${{ needs.version.outputs.version }}
+
+      - name: Rename
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item bin/windows-amd64/airframe-setup.exe dist/airframe-setup-windows_amd64.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: dist/airframe-setup-windows_amd64.exe
+          retention-days: 1
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub release
+    needs: [version, binaries, installer]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Release notes
+        run: |
+          prev=$(git describe --tags --abbrev=0 --match 'v*' HEAD 2>/dev/null || true)
+          if [ -n "$prev" ]; then
+            range="$prev..HEAD"
+            heading="Changes since $prev"
+          else
+            range="HEAD"
+            heading="Changes"
+          fi
+          {
+            echo "## $heading"
+            echo
+            git log --no-merges --pretty='- %s (%h)' "$range"
+          } > notes.md
+          cat notes.md
+
+      - name: Create release
+        run: |
+          gh release create "v$VERSION" dist/* \
+            --target "$GITHUB_SHA" \
+            --title "airframe $VERSION" \
+            --notes-file notes.md
+
+  # Pushed only after the release exists, so a failed build never leaves an
+  # image on Docker Hub without a matching release.
+  image:
+    name: Push Docker image
+    needs: [version, release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Placeholders: add these as repository secrets (Settings > Secrets and
+      # variables > Actions). DOCKERHUB_TOKEN is a Docker Hub personal access
+      # token with Read & Write scope.
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ needs.version.outputs.version }}
+            ${{ env.IMAGE }}:latest

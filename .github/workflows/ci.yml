@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    # Development branches only; main is covered by the PR and release workflows.
+    branches-ignore: [main]
 
 jobs:
   test:

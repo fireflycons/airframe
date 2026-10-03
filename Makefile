@@ -7,8 +7,13 @@ SCR_NAME := Airframe_ScreenSaver
 SCR_OUT  := $(SCR_DIR)/bin/Release
 VSWHERE  := C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe
 MSBUILD  ?= $(shell "$(VSWHERE)" -nologo -latest -requires Microsoft.Component.MSBuild -find "MSBuild/**/Bin/MSBuild.exe")
+NUGET    ?= $(SCR_DIR)/nuget.exe
 MAKENSIS ?= C:/Program Files (x86)/NSIS/makensis.exe
 VERSION  ?= $(shell git describe --tags --always --dirty)
+
+# $(file <) reads VERSION.txt without a shell, so it works under cmd.exe too.
+IMAGE         ?= fireflycons/airframe
+IMAGE_VERSION ?= $(strip $(file < VERSION.txt))
 
 .PHONY: help
 help: ## Display this help.
@@ -29,7 +34,7 @@ else
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 endif
 
-.PHONY: lint lint-windows lint-linux test build build-windows-amd64 build-linux-amd64 build-darwin-arm64 build-screensaver installer
+.PHONY: lint lint-windows lint-linux test build build-windows-amd64 build-linux-amd64 build-darwin-arm64 build-screensaver installer image
 
 all: lint test build installer ## Run all checks, tests, and builds.
 
@@ -65,6 +70,11 @@ build-windows-amd64:
 build-linux-amd64 build-darwin-arm64:
 	go build -ldflags "$(LDFLAGS)" -o bin/$(GOOS)-$(GOARCH)/airframe $(PKG)
 
+# The Linux container image is built locally only, tagged from VERSION.txt.
+image: ## Build the Linux Docker image, tagged with the version in VERSION.txt.
+	$(if $(IMAGE_VERSION),,$(error VERSION.txt is missing or empty))
+	docker build -t $(IMAGE):$(IMAGE_VERSION) .
+
 # The screensaver is .NET Framework 4.8 and needs Visual Studio's MSBuild, so
 # it only builds on a Windows host. The project's post-build event is disabled
 # because it regenerates the README screenshots in assets/; the rename to .scr
@@ -74,7 +84,7 @@ build-linux-amd64 build-darwin-arm64:
 ifeq ($(OS),Windows_NT)
 build-screensaver:
 	$(if $(MSBUILD),,$(error MSBuild not found; install Visual Studio or set MSBUILD))
-	"$(SCR_DIR)/nuget.exe" restore $(SCR_DIR)/packages.config -PackagesDirectory $(SCR_DIR)/packages -NonInteractive
+	"$(NUGET)" restore $(SCR_DIR)/packages.config -PackagesDirectory $(SCR_DIR)/packages -NonInteractive
 	"$(MSBUILD)" $(SCR_DIR)/$(SCR_PROJ).csproj -p:Configuration=Release -p:PostBuildEvent= -nologo -v:minimal
 	powershell -NoProfile -Command "New-Item -ItemType Directory -Force bin/windows-amd64 | Out-Null; Copy-Item $(SCR_OUT)/$(SCR_NAME).exe bin/windows-amd64/$(SCR_NAME).scr"
 
