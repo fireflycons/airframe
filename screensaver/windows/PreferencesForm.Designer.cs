@@ -242,7 +242,7 @@ namespace Web_Page_Screensaver
             this.screenTabControl.Location = new System.Drawing.Point(24, 132);
             this.screenTabControl.Name = "screenTabControl";
             this.screenTabControl.SelectedIndex = 0;
-            this.screenTabControl.Size = new System.Drawing.Size(812, 372);
+            this.screenTabControl.Size = new System.Drawing.Size(812, 408);
             this.screenTabControl.TabIndex = 2;
             // 
             // screenTabPage1
@@ -252,7 +252,7 @@ namespace Web_Page_Screensaver
             this.screenTabPage1.Location = new System.Drawing.Point(4, 40);
             this.screenTabPage1.Name = "screenTabPage1";
             this.screenTabPage1.Padding = new System.Windows.Forms.Padding(12);
-            this.screenTabPage1.Size = new System.Drawing.Size(804, 328);
+            this.screenTabPage1.Size = new System.Drawing.Size(804, 364);
             this.screenTabPage1.TabIndex = 0;
             this.screenTabPage1.Text = "Screen 1";
             // 
@@ -264,7 +264,7 @@ namespace Web_Page_Screensaver
             this.prefsByScreenUserControl1.Location = new System.Drawing.Point(12, 12);
             this.prefsByScreenUserControl1.Margin = new System.Windows.Forms.Padding(0);
             this.prefsByScreenUserControl1.Name = "prefsByScreenUserControl1";
-            this.prefsByScreenUserControl1.Size = new System.Drawing.Size(780, 304);
+            this.prefsByScreenUserControl1.Size = new System.Drawing.Size(780, 340);
             this.prefsByScreenUserControl1.TabIndex = 0;
             // 
             // bottomPanel
@@ -281,7 +281,7 @@ namespace Web_Page_Screensaver
             this.bottomPanel.Controls.Add(this.btnImport);
             this.bottomPanel.Controls.Add(this.cancelButton);
             this.bottomPanel.Controls.Add(this.okButton);
-            this.bottomPanel.Location = new System.Drawing.Point(24, 506);
+            this.bottomPanel.Location = new System.Drawing.Point(24, 542);
             this.bottomPanel.Name = "bottomPanel";
             this.bottomPanel.Size = new System.Drawing.Size(812, 78);
             this.bottomPanel.TabIndex = 3;
@@ -397,7 +397,7 @@ namespace Web_Page_Screensaver
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(20)))), ((int)(((byte)(23)))));
             this.CancelButton = this.cancelButton;
-            this.ClientSize = new System.Drawing.Size(860, 596);
+            this.ClientSize = new System.Drawing.Size(860, 632);
             this.Controls.Add(this.bottomPanel);
             this.Controls.Add(this.screenTabControl);
             this.Controls.Add(this.multiScreenCard);
@@ -407,7 +407,7 @@ namespace Web_Page_Screensaver
             this.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.MinimumSize = new System.Drawing.Size(760, 520);
+            this.MinimumSize = new System.Drawing.Size(760, 556);
             this.Name = "PreferencesForm";
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Show;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;

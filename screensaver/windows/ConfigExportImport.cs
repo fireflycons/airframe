@@ -23,6 +23,7 @@ namespace Web_Page_Screensaver
         public List<int> RotationIntervalsByScreen { get; set; }
         public List<bool> RandomizeFlagByScreen { get; set; }
         public List<int> ZoomFactorsByScreen { get; set; }
+        public List<string> UrlModeByScreen { get; set; }
     }
 
     /// <summary>
@@ -58,7 +59,8 @@ namespace Web_Page_Screensaver
                             UrlsByScreen = prefs.GetAllUrlsByScreenDirect(),
                             RotationIntervalsByScreen = prefs.GetAllIntervalsDirect(),
                             RandomizeFlagByScreen = prefs.GetAllRandomizeDirect(),
-                            ZoomFactorsByScreen = prefs.GetAllZoomFactorsDirect()
+                            ZoomFactorsByScreen = prefs.GetAllZoomFactorsDirect(),
+                            UrlModeByScreen = prefs.GetAllUrlModesDirect()
                         };
 
                         string json = Serializer.Serialize(dto);
@@ -130,6 +132,7 @@ namespace Web_Page_Screensaver
                         if (dto.RotationIntervalsByScreen != null) prefs.SetAllIntervalsDirect(dto.RotationIntervalsByScreen);
                         if (dto.RandomizeFlagByScreen != null) prefs.SetAllRandomizeDirect(dto.RandomizeFlagByScreen);
                         if (dto.ZoomFactorsByScreen != null) prefs.SetAllZoomFactorsDirect(dto.ZoomFactorsByScreen);
+                        if (dto.UrlModeByScreen != null) prefs.SetAllUrlModesDirect(dto.UrlModeByScreen);
 
                         prefs.SavePreferences();
 

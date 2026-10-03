@@ -20,6 +20,7 @@ namespace Web_Page_Screensaver
         private const string CLOCK_OVERLAY_PREF = "ShowClockOverlay";
         private const string CLOCK_POSITION_PREF = "ClockPosition";
         private const string ZOOM_FACTOR_PREF = "ZoomFactor";
+        private const string URL_MODE_PREF = "UrlMode";
 
         private const string SCREEN_SPECIFIC_PREF_NAME_FORMATSTRING = "{0}Screen{1}";
 
@@ -34,6 +35,7 @@ namespace Web_Page_Screensaver
         private const string CLOCK_OVERLAY_PREF_DEFAULT = "False";
         private const string CLOCK_POSITION_PREF_DEFAULT = "BottomRight";
         private const string ZOOM_FACTOR_PREF_DEFAULT = "100";
+        private const string URL_MODE_PREF_DEFAULT = "Cycle";
 
         public bool MuteAudio { get; set; }
         public bool InPrivate { get; set; }
@@ -51,6 +53,16 @@ namespace Web_Page_Screensaver
         }
 
         public ClockPosition ClockPositionPref { get; set; } = ClockPosition.BottomRight;
+
+        /// <summary>
+        /// How a screen with several URLs uses them: rotate through all of them, or stay on the
+        /// first one that loads (falling back down the list, then to the clock).
+        /// </summary>
+        public enum UrlDisplayMode
+        {
+            Cycle,
+            FirstAvailable
+        }
 
         private List<int> zoomFactorsByScreen;
 
@@ -314,15 +326,38 @@ namespace Web_Page_Screensaver
             }
         }
 
+        private List<string> urlModeByScreen;
+        public UrlDisplayMode GetUrlModeByScreen(int screenNum)
+        {
+            int idx = TranslateScreenNumToScreenPrefNum(screenNum);
+            // Stored as a string so an unrecognised registry value degrades to the original behaviour
+            if (urlModeByScreen != null && idx < urlModeByScreen.Count &&
+                Enum.TryParse(urlModeByScreen[idx], out UrlDisplayMode mode))
+            {
+                return mode;
+            }
+            return UrlDisplayMode.Cycle;
+        }
+        public void SetUrlModeForScreen(int screenNum, UrlDisplayMode value)
+        {
+            int idx = TranslateScreenNumToScreenPrefNum(screenNum);
+            if (urlModeByScreen != null && idx < urlModeByScreen.Count)
+            {
+                urlModeByScreen[idx] = value.ToString();
+            }
+        }
+
         public List<List<string>> GetAllUrlsByScreenDirect() => urlsByScreen;
         public List<int> GetAllIntervalsDirect() => rotationIntervalsByScreen;
         public List<bool> GetAllRandomizeDirect() => randomizeFlagByScreen;
         public List<int> GetAllZoomFactorsDirect() => zoomFactorsByScreen;
+        public List<string> GetAllUrlModesDirect() => urlModeByScreen;
 
         public void SetAllUrlsByScreenDirect(List<List<string>> val) { urlsByScreen = val; }
         public void SetAllIntervalsDirect(List<int> val) { rotationIntervalsByScreen = val; }
         public void SetAllRandomizeDirect(List<bool> val) { randomizeFlagByScreen = val; }
         public void SetAllZoomFactorsDirect(List<int> val) { zoomFactorsByScreen = val; }
+        public void SetAllUrlModesDirect(List<string> val) { urlModeByScreen = val; }
 
         public void SavePreferences()
         {
@@ -337,6 +372,7 @@ namespace Web_Page_Screensaver
             SavePrefAllScreens(INTERVAL_PREF, rotationIntervalsByScreen);
             SavePrefAllScreens(RANDOMIZE_PREF, randomizeFlagByScreen);
             SavePrefAllScreens(ZOOM_FACTOR_PREF, zoomFactorsByScreen);
+            SavePrefAllScreens(URL_MODE_PREF, urlModeByScreen);
             Reg.Flush();
         }
 
@@ -362,6 +398,7 @@ namespace Web_Page_Screensaver
             rotationIntervalsByScreen = LoadPrefAllScreens<int>(INTERVAL_PREF, INTERVAL_PREF_DEFAULT, INTERVAL_PREF_DEFAULT);
             randomizeFlagByScreen = LoadPrefAllScreens<bool>(RANDOMIZE_PREF, RANDOMIZE_PREF_DEFAULT, RANDOMIZE_PREF_DEFAULT);
             zoomFactorsByScreen = LoadPrefAllScreens<int>(ZOOM_FACTOR_PREF, ZOOM_FACTOR_PREF_DEFAULT, ZOOM_FACTOR_PREF_DEFAULT);
+            urlModeByScreen = LoadPrefAllScreens<string>(URL_MODE_PREF, URL_MODE_PREF_DEFAULT, URL_MODE_PREF_DEFAULT);
         }
 
         private List<List<string>> LoadUrlsAllScreens()

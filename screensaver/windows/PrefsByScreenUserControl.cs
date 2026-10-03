@@ -46,6 +46,9 @@ namespace Web_Page_Screensaver
             cmbZoom.BackColor = colors.InputBackground;
             cmbZoom.ForeColor = colors.TextPrimary;
             cbRandomize.ForeColor = colors.TextPrimary;
+            lblUrlMode.ForeColor = colors.TextPrimary;
+            cmbUrlMode.BackColor = colors.InputBackground;
+            cmbUrlMode.ForeColor = colors.TextPrimary;
 
             // Redraw the controls
             listCard.Invalidate();
@@ -81,6 +84,11 @@ namespace Web_Page_Screensaver
             {
                 cmbZoom.SelectedIndex = 1; // 100%
             }
+
+            if (cmbUrlMode.SelectedIndex < 0)
+            {
+                cmbUrlMode.SelectedIndex = (int)PreferencesManager.UrlDisplayMode.Cycle;
+            }
         }
 
         public void ApplyTexts()
@@ -93,12 +101,12 @@ namespace Web_Page_Screensaver
             btnDelete.Text = "✕ Delete";
             btnAbout.Text = "ⓘ About";
 
-            lblRotation.Text = "Rotate every:";
             lblSeconds.Text = "sec";
             lblZoom.Text = "Zoom:";
+            lblUrlMode.Text = "Multiple URLs:";
             cbRandomize.Text = "Shuffle order";
 
-            AdjustOptionsLayout();
+            UpdateModeDependentControls();
 
             urlButtonsTooltip.SetToolTip(btnUp, "Move selected URL up (Alt+▲)");
             urlButtonsTooltip.SetToolTip(btnDown, "Move selected URL down (Alt+▼)");
@@ -107,6 +115,10 @@ namespace Web_Page_Screensaver
             urlButtonsTooltip.SetToolTip(btnPreview, "Preview selected URL in live screensaver window");
             urlButtonsTooltip.SetToolTip(btnDelete, "Delete selected URLs (Del)");
             urlButtonsTooltip.SetToolTip(btnAbout, "About AirFrame Screensaver");
+            urlButtonsTooltip.SetToolTip(cmbUrlMode,
+                "Cycle through all: rotate through every URL in turn.\n" +
+                "Show first available: stay on the first URL; if it can't be loaded, use the next one,\n" +
+                "then the clock. The first URL is retried at the interval until it's back.");
         }
 
         /// <summary>
@@ -120,6 +132,29 @@ namespace Web_Page_Screensaver
             lblSeconds.Location = new Point(nudRotationInterval.Right + 6, 13);
             lblZoom.Location = new Point(lblSeconds.Right + 22, 13);
             cmbZoom.Location = new Point(lblZoom.Right + 8, 10);
+
+            lblUrlMode.Location = new Point(12, 49);
+            cmbUrlMode.Location = new Point(lblUrlMode.Right + 8, 46);
+            cbRandomize.Location = new Point(cmbUrlMode.Right + 22, 48);
+        }
+
+        private bool IsFirstAvailableMode =>
+            cmbUrlMode.SelectedIndex == (int)PreferencesManager.UrlDisplayMode.FirstAvailable;
+
+        /// <summary>
+        /// In first-available mode the interval means "how often to retry the first URL", and shuffling would
+        /// defeat the point of an ordered fallback list, so the related controls follow the selected mode.
+        /// </summary>
+        private void UpdateModeDependentControls()
+        {
+            lblRotation.Text = IsFirstAvailableMode ? "Retry first every:" : "Rotate every:";
+            cbRandomize.Enabled = !IsFirstAvailableMode;
+            AdjustOptionsLayout();
+        }
+
+        private void cmbUrlMode_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateModeDependentControls();
         }
 
         #region URL add / edit / delete (with inline editing)

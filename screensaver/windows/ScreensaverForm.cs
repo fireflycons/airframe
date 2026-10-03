@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.WinForms;
 using Microsoft.Web.WebView2.Core;
@@ -18,6 +20,11 @@ namespace Web_Page_Screensaver
         private int currentSiteIndex = -1;
         private bool shuffleOrder;
         private List<string> urls;
+        private PreferencesManager.UrlDisplayMode urlMode;
+        // True once every URL has failed and the clock page is up; tells RetryPrimary there is something to recover from
+        private bool showingFallbackClock;
+        // Prevents a slow probe from overlapping the next timer tick's probe
+        private bool probeInFlight;
 
         private PreferencesManager prefsManager = new PreferencesManager();
         private int screenNum;
@@ -111,7 +118,16 @@ namespace Web_Page_Screensaver
                 {
                     if (!e.IsSuccess && e.WebErrorStatus != CoreWebView2WebErrorStatus.OperationCanceled)
                     {
+                        // In first-available mode a dead URL hands over to the next one; the clock is the last resort
+                        if (urlMode == PreferencesManager.UrlDisplayMode.FirstAvailable && currentSiteIndex + 1 < Urls.Count)
+                        {
+                            currentSiteIndex++;
+                            BrowseTo(ScreensaverUrlItem.Parse(Urls[currentSiteIndex]).Url);
+                            return;
+                        }
+
                         // On a network error or server outage, render an elegant modern digital clock fallback screen
+                        showingFallbackClock = true;
                         string fallbackHtml = FallbackHtmlProvider.GetFallbackClockHtml(currentLoadedUrl);
                         webView.CoreWebView2.NavigateToString(fallbackHtml);
                     }
@@ -167,7 +183,21 @@ namespace Web_Page_Screensaver
 
         private void StartScreensaverLogic()
         {
-            if (Urls.Any())
+            urlMode = prefsManager.GetUrlModeByScreen(screenNum);
+
+            if (Urls.Any() && urlMode == PreferencesManager.UrlDisplayMode.FirstAvailable)
+            {
+                // The timer is needed even for a single URL, so a page that was down at start-up is picked up once it recovers.
+                // Per-URL display times are about rotation, so they don't apply here.
+                timer = new Timer();
+                timer.Interval = Math.Max(1, prefsManager.GetRotationIntervalByScreen(screenNum)) * 1000;
+                timer.Tick += (s, ee) => RetryPrimary();
+                timer.Start();
+
+                currentSiteIndex = 0;
+                BrowseTo(ScreensaverUrlItem.Parse(Urls[0]).Url);
+            }
+            else if (Urls.Any())
             {
                 if (Urls.Count > 1)
                 {
@@ -214,6 +244,7 @@ namespace Web_Page_Screensaver
             {
                 webView.Visible = true;
                 currentLoadedUrl = url;
+                showingFallbackClock = false;
                 try
                 {
                     if (webView.CoreWebView2 != null)
@@ -241,6 +272,55 @@ namespace Web_Page_Screensaver
             }
 
             BrowseTo(parsed.Url);
+        }
+
+        /// <summary>
+        /// First-available mode: while a fallback (later URL or the clock) is on screen, return to the first URL once it responds.
+        /// The URL is probed out of band first, so the WebView2 error page doesn't flash every interval while it's still down.
+        /// </summary>
+        private async void RetryPrimary()
+        {
+            if ((currentSiteIndex == 0 && !showingFallbackClock) || probeInFlight) return;
+
+            string primaryUrl = ScreensaverUrlItem.Parse(Urls[0]).Url;
+            probeInFlight = true;
+            try
+            {
+                bool reachable = await Task.Run(() => IsReachable(primaryUrl));
+                if (reachable && !IsDisposed)
+                {
+                    currentSiteIndex = 0;
+                    BrowseTo(primaryUrl);
+                }
+            }
+            finally
+            {
+                probeInFlight = false;
+            }
+        }
+
+        private static bool IsReachable(string url)
+        {
+            try
+            {
+                var uri = new Uri(url);
+                if (uri.IsFile) return File.Exists(uri.LocalPath);
+                if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) return true;
+
+                var request = (HttpWebRequest)WebRequest.Create(uri);
+                request.Method = "GET";
+                request.Timeout = 5000;
+                request.AllowAutoRedirect = true;
+                using (var response = (HttpWebResponse)request.GetResponse())
+                {
+                    return (int)response.StatusCode < 400;
+                }
+            }
+            catch
+            {
+                // Connection refused, timeout, 4xx/5xx (thrown as WebException) or a malformed URL: all mean "not yet"
+                return false;
+            }
         }
 
         private void HandleUserActivity()

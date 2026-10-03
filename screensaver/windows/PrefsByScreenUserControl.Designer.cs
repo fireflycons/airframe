@@ -53,6 +53,8 @@ namespace Web_Page_Screensaver
             this.lblZoom = new System.Windows.Forms.Label();
             this.cmbZoom = new System.Windows.Forms.ComboBox();
             this.cbRandomize = new Web_Page_Screensaver.ModernCheckBox();
+            this.lblUrlMode = new System.Windows.Forms.Label();
+            this.cmbUrlMode = new System.Windows.Forms.ComboBox();
             this.urlButtonsTooltip = new System.Windows.Forms.ToolTip(this.components);
             this.listCard.SuspendLayout();
             this.optionsCard.SuspendLayout();
@@ -248,10 +250,12 @@ namespace Web_Page_Screensaver
             this.optionsCard.Controls.Add(this.nudRotationInterval);
             this.optionsCard.Controls.Add(this.lblRotation);
             this.optionsCard.Controls.Add(this.cbRandomize);
+            this.optionsCard.Controls.Add(this.lblUrlMode);
+            this.optionsCard.Controls.Add(this.cmbUrlMode);
             this.optionsCard.Location = new System.Drawing.Point(0, 264);
             this.optionsCard.Name = "optionsCard";
             this.optionsCard.Padding = new System.Windows.Forms.Padding(12, 8, 12, 8);
-            this.optionsCard.Size = new System.Drawing.Size(680, 44);
+            this.optionsCard.Size = new System.Drawing.Size(680, 80);
             this.optionsCard.TabIndex = 8;
             // 
             // lblZoom
@@ -334,17 +338,43 @@ namespace Web_Page_Screensaver
             // 
             // cbRandomize
             // 
-            this.cbRandomize.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.cbRandomize.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)));
             this.cbRandomize.AutoSize = true;
             this.cbRandomize.Cursor = System.Windows.Forms.Cursors.Hand;
             this.cbRandomize.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.cbRandomize.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(244)))), ((int)(((byte)(245)))));
-            this.cbRandomize.Location = new System.Drawing.Point(490, 12);
+            this.cbRandomize.Location = new System.Drawing.Point(300, 48);
             this.cbRandomize.Name = "cbRandomize";
             this.cbRandomize.Size = new System.Drawing.Size(168, 19);
-            this.cbRandomize.TabIndex = 0;
+            this.cbRandomize.TabIndex = 8;
             this.cbRandomize.Text = "Shuffle display order";
             this.cbRandomize.UseVisualStyleBackColor = true;
+            // 
+            // lblUrlMode
+            // 
+            this.lblUrlMode.AutoSize = true;
+            this.lblUrlMode.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblUrlMode.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(244)))), ((int)(((byte)(244)))), ((int)(((byte)(245)))));
+            this.lblUrlMode.Location = new System.Drawing.Point(12, 49);
+            this.lblUrlMode.Name = "lblUrlMode";
+            this.lblUrlMode.Size = new System.Drawing.Size(88, 15);
+            this.lblUrlMode.TabIndex = 6;
+            this.lblUrlMode.Text = "Multiple URLs:";
+            // 
+            // cmbUrlMode
+            // 
+            this.cmbUrlMode.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbUrlMode.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.cmbUrlMode.Font = new System.Drawing.Font("Segoe UI", 8.8F);
+            this.cmbUrlMode.FormattingEnabled = true;
+            this.cmbUrlMode.Items.AddRange(new object[] {
+            "Cycle through all",
+            "Show first available"});
+            this.cmbUrlMode.Location = new System.Drawing.Point(108, 46);
+            this.cmbUrlMode.Name = "cmbUrlMode";
+            this.cmbUrlMode.Size = new System.Drawing.Size(160, 23);
+            this.cmbUrlMode.TabIndex = 7;
+            this.cmbUrlMode.SelectedIndexChanged += new System.EventHandler(this.cmbUrlMode_SelectedIndexChanged);
             // 
             // PrefsByScreenUserControl
             // 
@@ -363,7 +393,7 @@ namespace Web_Page_Screensaver
             this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Margin = new System.Windows.Forms.Padding(0);
             this.Name = "PrefsByScreenUserControl";
-            this.Size = new System.Drawing.Size(680, 316);
+            this.Size = new System.Drawing.Size(680, 352);
             this.listCard.ResumeLayout(false);
             this.optionsCard.ResumeLayout(false);
             this.optionsCard.PerformLayout();
@@ -391,6 +421,8 @@ namespace Web_Page_Screensaver
         private System.Windows.Forms.Label lblZoom;
         public System.Windows.Forms.ComboBox cmbZoom;
         public ModernCheckBox cbRandomize;
+        private System.Windows.Forms.Label lblUrlMode;
+        public System.Windows.Forms.ComboBox cmbUrlMode;
         private System.Windows.Forms.ToolTip urlButtonsTooltip;
     }
 }

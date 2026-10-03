@@ -295,6 +295,7 @@ namespace Web_Page_Screensaver
                 loadUrlsForTabToControl(screenNum, currentPrefsUserControl);
                 currentPrefsUserControl.nudRotationInterval.Value = Math.Max(1, prefsManager.GetRotationIntervalByScreen(screenNum));
                 currentPrefsUserControl.cbRandomize.Checked = prefsManager.GetRandomizeFlagByScreen(screenNum);
+                currentPrefsUserControl.cmbUrlMode.SelectedIndex = (int)prefsManager.GetUrlModeByScreen(screenNum);
 
                 // Apply the zoom factor
                 int zoom = prefsManager.GetZoomFactorByScreen(screenNum);
@@ -454,6 +455,11 @@ namespace Web_Page_Screensaver
                     prefsManager.SetRotationIntervalForScreen(i,
                         (int) currentPrefsUserControl.nudRotationInterval.Value);
                     prefsManager.SetRandomizeFlagForScreen(i, currentPrefsUserControl.cbRandomize.Checked);
+                    if (currentPrefsUserControl.cmbUrlMode.SelectedIndex >= 0)
+                    {
+                        prefsManager.SetUrlModeForScreen(i,
+                            (PreferencesManager.UrlDisplayMode)currentPrefsUserControl.cmbUrlMode.SelectedIndex);
+                    }
 
                     if (currentPrefsUserControl.cmbZoom.SelectedItem != null)
                     {
