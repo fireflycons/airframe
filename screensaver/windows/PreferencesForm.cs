@@ -161,8 +161,8 @@ namespace Web_Page_Screensaver
 
         public void ApplyTexts()
         {
-            Text = "WebView2 Web Page Screensaver Settings v1.0.6";
-            lblTitle.Text = "WebView2 Web Screensaver v1.0.6";
+            Text = "AirFrame Screensaver Settings";
+            lblTitle.Text = "AirFrame Screensaver";
             lblSubtitle.Text = "Display websites and live dashboards with Microsoft WebView2";
             lblMultiScreen.Text = "Multi-Monitor Mode:";
 

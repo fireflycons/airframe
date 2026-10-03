@@ -56,6 +56,7 @@ namespace Web_Page_Screensaver
             btnEdit.Invalidate();
             btnPreview.Invalidate();
             btnDelete.Invalidate();
+            btnAbout.Invalidate();
             cbRandomize.Invalidate();
         }
 
@@ -90,6 +91,7 @@ namespace Web_Page_Screensaver
             btnEdit.Text = "✎ Edit";
             btnPreview.Text = "👁 Preview";
             btnDelete.Text = "✕ Delete";
+            btnAbout.Text = "ⓘ About";
 
             lblRotation.Text = "Rotate every:";
             lblSeconds.Text = "sec";
@@ -104,6 +106,7 @@ namespace Web_Page_Screensaver
             urlButtonsTooltip.SetToolTip(btnEdit, "Edit selected URL directly in list (F2 / Double-click)");
             urlButtonsTooltip.SetToolTip(btnPreview, "Preview selected URL in live screensaver window");
             urlButtonsTooltip.SetToolTip(btnDelete, "Delete selected URLs (Del)");
+            urlButtonsTooltip.SetToolTip(btnAbout, "About AirFrame Screensaver");
         }
 
         /// <summary>
@@ -378,6 +381,14 @@ namespace Web_Page_Screensaver
                     "Notice",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
+            }
+        }
+
+        private void btnAbout_Click(object sender, EventArgs e)
+        {
+            using (var dlg = new AboutDialog())
+            {
+                dlg.ShowDialog(this.FindForm());
             }
         }
 

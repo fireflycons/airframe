@@ -22,22 +22,13 @@ A Fork of the old archived project [ZenProjects/Chromium-Web-Page-Screensaver](h
 - [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
 - Windows 11 & up
 
-## Download and Install
-
-- Download the ***[Latest WebView2 Web Screensaver binary](https://github.com/muro-dot/Webview2_WebPage_Screensaver/releases/latest)*** ![Downloads](https://img.shields.io/github/downloads/muro-dot/Webview2_WebPage_Screensaver/total) 
-- Unzip it to a permanent directory
-- Find `Webview2_WebPage_Screensaver.scr` in the unziped directory, right click it
-- Select `Install` to install, or `Test` to test it out without installing it
-- If installing it, the windows `Screen Saver Settings` dialog will pop up with the correct screen saver already selected
-- Use the `Settings...` button in the same dialog to change the web page(s) list displayed by the screen saver
-
 ## Build 
 
 - Clone the source repository
 - Open the `.sln` project file with Visual Studio (Tested with VS 2026).
 - Restore NuGet packages to download the `Microsoft.Web.WebView2` dependency.
 - Build in `Release` with `Any CPU` or `x64` mode
-- Find `Webview2_WebPage_Screensaver.scr` in `bin/Release`
+- Find `Airframe_ScreenSaver.scr` in `bin/Release`
 - Right click the `.scr` file, select `Install` to install, or `Test` to test it out
 - Use the `Settings...` button to configure your custom URLs.
 

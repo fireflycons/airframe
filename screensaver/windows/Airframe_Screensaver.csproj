@@ -9,8 +9,8 @@
     <ProjectGuid>{3E640398-E4D5-4AC8-A200-7AD96E7CC77F}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Webview2_WebPage_Screensaver</RootNamespace>
-    <AssemblyName>Webview2_WebPage_Screensaver</AssemblyName>
+    <RootNamespace>Airframe_Screensaver</RootNamespace>
+    <AssemblyName>Airframe_ScreenSaver</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ApplicationIcon>app.ico</ApplicationIcon>
@@ -170,6 +170,9 @@
     <Compile Include="ConfigExportImport.cs" />
     <Compile Include="EmbeddedWebView2Loader.cs" />
     <Compile Include="PreviewDialog.cs" />
+    <Compile Include="AboutDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="PreferencesForm.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -886,8 +886,8 @@ namespace Web_Page_Screensaver
     }
 
     /// <summary>
-    /// Generator for the modern web screensaver app logo and title bar icon.
-    /// Renders a refined, modern Fluent-style icon combining a web globe, a monitor (screensaver) and starlight sparkles.
+    /// Generator for the app logo and title bar icon.
+    /// Renders the Airframe radar scope: range rings, a sweep and aircraft blips, in the web UI's colours.
     /// </summary>
     public static class ModernAppIcon
     {
@@ -908,6 +908,14 @@ namespace Web_Page_Screensaver
 
         public static Bitmap CreateAppBitmap(int size)
         {
+            // Colours from the web UI's app.css.
+            Color bg = Color.FromArgb(0x0b, 0x10, 0x16);
+            Color panel = Color.FromArgb(0x11, 0x19, 0x22);
+            Color scope = Color.FromArgb(0x1f, 0x6f, 0x5c);
+            Color accent = Color.FromArgb(0x4f, 0xd1, 0xc5);
+            Color blip = Color.FromArgb(0x7e, 0xe0, 0xb5);
+            Color nearest = Color.FromArgb(0xff, 0xd1, 0x66);
+
             var bmp = new Bitmap(size, size, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             using (var g = Graphics.FromImage(bmp))
             {
@@ -917,110 +925,111 @@ namespace Web_Page_Screensaver
                 g.Clear(Color.Transparent);
 
                 float s = size / 256.0f;
+                bool small = size < 32;
 
                 // 1. Rounded app tile base
                 float margin = 8f * s;
                 float w = size - (margin * 2);
                 var tileRect = new RectangleF(margin, margin, w, w);
-                float radius = 54f * s;
 
-                using (var path = ModernButton.GetRoundedRectangleF(tileRect, radius))
+                using (var path = ModernButton.GetRoundedRectangleF(tileRect, 54f * s))
                 {
-                    // Deep indigo and sapphire gradient
-                    using (var brush = new LinearGradientBrush(
-                        new PointF(margin, margin),
-                        new PointF(size - margin, size - margin),
-                        Color.FromArgb(41, 112, 226),
-                        Color.FromArgb(15, 23, 42)))
+                    using (var brush = new LinearGradientBrush(tileRect, panel, bg, LinearGradientMode.ForwardDiagonal))
                     {
                         g.FillPath(brush, path);
                     }
-
-                    // Subtle outline
-                    using (var borderPen = new Pen(Color.FromArgb(110, 255, 255, 255), Math.Max(1f, 3f * s)))
+                    using (var borderPen = new Pen(Color.FromArgb(90, scope), Math.Max(1f, 3f * s)))
                     {
                         g.DrawPath(borderPen, path);
                     }
                 }
 
-                // 2. Browser window frame (dark glass look)
-                float winX = 32f * s;
-                float winY = 32f * s;
-                float winW = 192f * s;
-                float winH = 192f * s;
-                var winRect = new RectangleF(winX, winY, winW, winH);
+                // 2. Scope: range rings and crosshair. Small sizes keep only the edge ring.
+                float cx = size / 2f;
+                float cy = size / 2f;
+                float r = 96f * s;
 
-                using (var winPath = ModernButton.GetRoundedRectangleF(winRect, 30f * s))
+                if (!small)
                 {
-                    using (var winBg = new SolidBrush(Color.FromArgb(140, 10, 16, 32)))
+                    using (var gridPen = new Pen(scope, Math.Max(1f, 3f * s)))
                     {
-                        g.FillPath(winBg, winPath);
+                        foreach (float f in new[] { 1f / 3f, 2f / 3f })
+                        {
+                            g.DrawEllipse(gridPen, cx - r * f, cy - r * f, r * f * 2, r * f * 2);
+                        }
+                        g.DrawLine(gridPen, cx - r, cy, cx + r, cy);
+                        g.DrawLine(gridPen, cx, cy - r, cx, cy + r);
                     }
-                    using (var winPen = new Pen(Color.FromArgb(100, 255, 255, 255), Math.Max(1f, 2.5f * s)))
+                }
+
+                // 3. Sweep: a 70 degree trail fading in towards the leading edge at bearing 060.
+                // Painted per pixel, because overlapping translucent pies leave seams.
+                // Its hard edges are covered by the leading line and the edge ring.
+                const float lead = 60f;
+                const float trail = 70f;
+                using (var sweep = new Bitmap(size, size, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+                {
+                    for (int y = 0; y < size; y++)
                     {
-                        g.DrawPath(winPen, winPath);
+                        for (int x = 0; x < size; x++)
+                        {
+                            float dx = x + 0.5f - cx;
+                            float dy = y + 0.5f - cy;
+                            if (dx * dx + dy * dy > r * r) continue;
+                            double bearing = Math.Atan2(dx, -dy) * 180.0 / Math.PI;
+                            double behind = ((lead - bearing) % 360 + 360) % 360;
+                            if (behind > trail) continue;
+                            double t = 1 - behind / trail;
+                            sweep.SetPixel(x, y, Color.FromArgb((int)(150 * t * t), accent));
+                        }
                     }
+                    g.DrawImage(sweep, 0, 0, size, size);
                 }
 
-                // 3. Browser header bar and traffic-light dots
-                float dotY = 52f * s;
-                float dotSize = 11f * s;
-                using (var d1 = new SolidBrush(Color.FromArgb(245, 108, 108)))
-                using (var d2 = new SolidBrush(Color.FromArgb(230, 162, 60)))
-                using (var d3 = new SolidBrush(Color.FromArgb(103, 194, 58)))
+                // GDI+ angles run clockwise from east, so bearing b is angle b - 90.
+                double leadRad = (lead - 90f) * Math.PI / 180.0;
+                using (var leadPen = new Pen(accent, Math.Max(1f, 5f * s)))
                 {
-                    g.FillEllipse(d1, 50f * s, dotY, dotSize, dotSize);
-                    g.FillEllipse(d2, 70f * s, dotY, dotSize, dotSize);
-                    g.FillEllipse(d3, 90f * s, dotY, dotSize, dotSize);
+                    leadPen.StartCap = LineCap.Round;
+                    leadPen.EndCap = LineCap.Round;
+                    g.DrawLine(leadPen, cx, cy, cx + r * (float)Math.Cos(leadRad), cy + r * (float)Math.Sin(leadRad));
                 }
 
-                // Header divider
-                using (var linePen = new Pen(Color.FromArgb(60, 255, 255, 255), Math.Max(1f, 2f * s)))
+                // Edge ring, drawn over the sweep.
+                using (var edgePen = new Pen(small ? accent : scope, Math.Max(1f, 6f * s)))
                 {
-                    g.DrawLine(linePen, winX + 10f * s, 76f * s, winX + winW - 10f * s, 76f * s);
+                    g.DrawEllipse(edgePen, cx - r, cy - r, r * 2, r * 2);
                 }
 
-                // 4. Centre: a refined web globe
-                float cx = 128f * s;
-                float cy = 144f * s;
-                float r = 46f * s;
-
-                // Globe outer circle
-                using (var globePen = new Pen(Color.FromArgb(250, 255, 255, 255), Math.Max(1.4f, 5f * s)))
+                // 4. Blips. The nearest is just behind the sweep; others are fading.
+                DrawBlip(g, cx, cy, r, 42f, 0.62f, Math.Max(1f, 15f * s), nearest);
+                if (!small)
                 {
-                    g.DrawEllipse(globePen, cx - r, cy - r, r * 2, r * 2);
+                    DrawBlip(g, cx, cy, r, 215f, 0.72f, 10f * s, Color.FromArgb(200, blip));
+                    DrawBlip(g, cx, cy, r, 300f, 0.42f, 9f * s, Color.FromArgb(130, blip));
+                    DrawBlip(g, cx, cy, r, 140f, 0.85f, 8f * s, Color.FromArgb(90, blip));
                 }
 
-                // Globe meridians and parallels
-                using (var gridPen = new Pen(Color.FromArgb(180, 180, 220, 255), Math.Max(1f, 3f * s)))
+                // 5. Observer at the centre.
+                float or = Math.Max(1f, 9f * s);
+                using (var b = new SolidBrush(accent))
                 {
-                    g.DrawLine(gridPen, cx - r, cy, cx + r, cy);
-                    g.DrawEllipse(gridPen, cx - (r * 0.5f), cy - r, r, r * 2);
-                }
-
-                // 5. Glowing starlight sparkles representing the screensaver
-                float spX = 180f * s;
-                float spY = 96f * s;
-                float spSize = 16f * s;
-                using (var spBrush = new SolidBrush(Color.FromArgb(255, 255, 255, 255)))
-                {
-                    var path = new GraphicsPath();
-                    float inR = spSize * 0.32f;
-                    path.AddLines(new PointF[] {
-                        new PointF(spX, spY - spSize),
-                        new PointF(spX + inR, spY - inR),
-                        new PointF(spX + spSize, spY),
-                        new PointF(spX + inR, spY + inR),
-                        new PointF(spX, spY + spSize),
-                        new PointF(spX - inR, spY + inR),
-                        new PointF(spX - spSize, spY),
-                        new PointF(spX - inR, spY - inR)
-                    });
-                    path.CloseFigure();
-                    g.FillPath(spBrush, path);
+                    g.FillEllipse(b, cx - or, cy - or, or * 2, or * 2);
                 }
             }
             return bmp;
+        }
+
+        // Draws a blip at a bearing (degrees) and range (fraction of the scope radius r).
+        private static void DrawBlip(Graphics g, float cx, float cy, float r, float bearing, float range, float radius, Color c)
+        {
+            double a = (bearing - 90.0) * Math.PI / 180.0;
+            float x = cx + r * range * (float)Math.Cos(a);
+            float y = cy + r * range * (float)Math.Sin(a);
+            using (var b = new SolidBrush(c))
+            {
+                g.FillEllipse(b, x - radius, y - radius, radius * 2, radius * 2);
+            }
         }
 
         /// <summary>

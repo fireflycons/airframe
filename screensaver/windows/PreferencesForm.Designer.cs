@@ -150,7 +150,7 @@ namespace Web_Page_Screensaver
             this.lblTitle.Name = "lblTitle";
             this.lblTitle.Size = new System.Drawing.Size(271, 25);
             this.lblTitle.TabIndex = 0;
-            this.lblTitle.Text = "WebView2 Web Screensaver";
+            this.lblTitle.Text = "AirFrame Screensaver";
             // 
             // multiScreenCard
             // 
@@ -411,7 +411,7 @@ namespace Web_Page_Screensaver
             this.Name = "PreferencesForm";
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Show;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "WebView2 Web Page Screensaver Settings";
+            this.Text = "AirFrame Screensaver Settings";
             this.Load += new System.EventHandler(this.PreferencesForm_Load);
             this.headerPanel.ResumeLayout(false);
             this.headerPanel.PerformLayout();

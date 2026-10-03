@@ -45,6 +45,7 @@ namespace Web_Page_Screensaver
             this.btnEdit = new Web_Page_Screensaver.ModernButton();
             this.btnPreview = new Web_Page_Screensaver.ModernButton();
             this.btnDelete = new Web_Page_Screensaver.ModernButton();
+            this.btnAbout = new Web_Page_Screensaver.ModernButton();
             this.optionsCard = new Web_Page_Screensaver.ModernCard();
             this.lblSeconds = new System.Windows.Forms.Label();
             this.nudRotationInterval = new System.Windows.Forms.NumericUpDown();
@@ -215,6 +216,25 @@ namespace Web_Page_Screensaver
             this.btnDelete.UseVisualStyleBackColor = false;
             this.btnDelete.Click += new System.EventHandler(this.DeleteAllSelectedUrls_Click);
             // 
+            // btnAbout
+            // 
+            this.btnAbout.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnAbout.BackColor = System.Drawing.Color.Transparent;
+            this.btnAbout.BorderRadius = 6;
+            this.btnAbout.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnAbout.FlatAppearance.BorderSize = 0;
+            this.btnAbout.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnAbout.Font = new System.Drawing.Font("Segoe UI", 8.8F);
+            this.btnAbout.Location = new System.Drawing.Point(578, 218);
+            this.btnAbout.Name = "btnAbout";
+            this.btnAbout.Size = new System.Drawing.Size(102, 30);
+            this.btnAbout.Style = Web_Page_Screensaver.ModernButtonStyle.Secondary;
+            this.btnAbout.TabIndex = 7;
+            this.btnAbout.Text = "About";
+            this.urlButtonsTooltip.SetToolTip(this.btnAbout, "About AirFrame Screensaver");
+            this.btnAbout.UseVisualStyleBackColor = false;
+            this.btnAbout.Click += new System.EventHandler(this.btnAbout_Click);
+            // 
             // optionsCard
             // 
             this.optionsCard.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
@@ -332,6 +352,7 @@ namespace Web_Page_Screensaver
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(28)))), ((int)(((byte)(28)))), ((int)(((byte)(32)))));
             this.Controls.Add(this.optionsCard);
+            this.Controls.Add(this.btnAbout);
             this.Controls.Add(this.btnDelete);
             this.Controls.Add(this.btnPreview);
             this.Controls.Add(this.btnEdit);
@@ -362,6 +383,7 @@ namespace Web_Page_Screensaver
         private ModernButton btnEdit;
         private ModernButton btnPreview;
         private ModernButton btnDelete;
+        private ModernButton btnAbout;
         private ModernCard optionsCard;
         private System.Windows.Forms.Label lblRotation;
         public System.Windows.Forms.NumericUpDown nudRotationInterval;
