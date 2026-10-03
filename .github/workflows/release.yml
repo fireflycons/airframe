@@ -24,7 +24,7 @@ jobs:
     outputs:
       version: ${{ steps.v.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - id: v
         name: Check VERSION.txt against existing tags
@@ -47,9 +47,9 @@ jobs:
     env:
       VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
@@ -63,7 +63,7 @@ jobs:
           tar -czf "dist/airframe_${VERSION}_linux_amd64.tar.gz" -C bin/linux-amd64 airframe
           tar -czf "dist/airframe_${VERSION}_darwin_arm64.tar.gz" -C bin/darwin-arm64 airframe
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: binaries
           path: dist/*
@@ -75,13 +75,13 @@ jobs:
     needs: version
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
-      - uses: nuget/setup-nuget@v2
+      - uses: nuget/setup-nuget@v4
 
       - uses: ./.github/actions/setup-nsis
 
@@ -93,7 +93,7 @@ jobs:
           New-Item -ItemType Directory -Force dist | Out-Null
           Copy-Item bin/windows-amd64/airframe-setup.exe dist/airframe-setup-windows_amd64.exe
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: installer
           path: dist/airframe-setup-windows_amd64.exe
@@ -110,11 +110,11 @@ jobs:
       VERSION: ${{ needs.version.outputs.version }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
@@ -150,19 +150,19 @@ jobs:
     needs: [version, release]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       # Placeholders: add these as repository secrets (Settings > Secrets and
       # variables > Actions). DOCKERHUB_TOKEN is a Docker Hub personal access
       # token with Read & Write scope.
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64

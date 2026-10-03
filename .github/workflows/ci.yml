@@ -9,23 +9,23 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
       # Lint once per GOOS so both platform variants of internal/cli are
       # checked (mirrors "make lint").
       - name: Lint (windows)
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         env:
           GOOS: windows
         with:
           version: v2.12.2
 
       - name: Lint (linux)
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         env:
           GOOS: linux
         with:

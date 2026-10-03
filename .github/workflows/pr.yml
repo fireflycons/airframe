@@ -22,7 +22,7 @@ jobs:
     outputs:
       version: ${{ steps.v.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - id: v
         name: Check VERSION.txt against existing tags
@@ -49,14 +49,14 @@ jobs:
       # The race detector needs cgo.
       CGO_ENABLED: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
       - name: Lint
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.12.2
 
@@ -71,16 +71,16 @@ jobs:
     needs: [version, test]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
       - name: Build
         run: make build-windows-amd64 build-linux-amd64 build-darwin-arm64
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: binaries
           path: |
@@ -95,20 +95,20 @@ jobs:
     needs: [version, test]
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
-      - uses: nuget/setup-nuget@v2
+      - uses: nuget/setup-nuget@v4
 
       - uses: ./.github/actions/setup-nsis
 
       - name: Build installer
         run: make installer NUGET=nuget VERSION=${{ needs.version.outputs.version }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: installer
           path: |
@@ -122,19 +122,19 @@ jobs:
     needs: [version, test]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Build OCI image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64
           tags: fireflycons/airframe:${{ needs.version.outputs.version }}
           outputs: type=oci,dest=airframe-image.tar
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: docker-image-oci
           path: airframe-image.tar
