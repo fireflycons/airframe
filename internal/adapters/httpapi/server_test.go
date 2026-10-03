@@ -74,6 +74,13 @@ func TestStatic(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, serve(&fakeService{}, http.MethodGet, "/nope", "").Code)
 }
 
+func TestHealthz(t *testing.T) {
+	// The service is failing, but health doesn't depend on it.
+	rec := serve(&fakeService{err: errors.New("down")}, http.MethodGet, "/healthz", "")
+
+	require.Equal(t, http.StatusOK, rec.Code)
+}
+
 func TestAircraft(t *testing.T) {
 	list := []domain.Aircraft{{Icao: "4ca1d3"}}
 	svc := &fakeService{data: domain.AircraftData{Location: location, Radius: 25, Aircraft: &list}}

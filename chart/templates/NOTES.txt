@@ -1,0 +1,13 @@
+airframe is polling for aircraft within {{ .Values.airframe.radius }} NM of {{ .Values.airframe.location | default "the cluster's public IP location" }}.
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}/
+{{- end }}
+{{- else }}
+
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "airframe.fullname" . }} 7700:{{ .Values.service.port }}
+  then open http://localhost:7700/
+{{- end }}
+
+POST /observer has no authentication. Anyone who can reach the service can move the observer.

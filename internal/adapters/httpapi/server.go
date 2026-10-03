@@ -56,6 +56,8 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(static)))
 	mux.HandleFunc("GET /aircraft", s.aircraft)
 	mux.HandleFunc("POST /observer", s.setObserver)
+	// Liveness only: it doesn't call the service, so probes don't wake the poller.
+	mux.HandleFunc("GET /healthz", func(http.ResponseWriter, *http.Request) {})
 	return mux
 }
 

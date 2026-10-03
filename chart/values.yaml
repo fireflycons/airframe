@@ -1,0 +1,85 @@
+# Each replica polls airplanes.live on its own, and POST /observer changes only
+# the replica that receives it, so more than one replica is rarely useful.
+replicaCount: 1
+
+image:
+  repository: fireflycons/airframe
+  # Defaults to the chart's appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Command line flags passed to airframe.
+airframe:
+  # "lat,lon". Empty auto-detects from the public IP, which in a cluster is the
+  # cluster's egress address.
+  location: ""
+  # Radius in NM, greater than 0 and at most 250.
+  radius: 15
+  # Poll interval.
+  interval: 5s
+  # Extra arguments appended to the command line.
+  extraArgs: []
+
+# Port the container listens on (--listen).
+containerPort: 7700
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: airframe.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: airframe-tls
+  #    hosts:
+  #      - airframe.local
+
+podAnnotations: {}
+podLabels: {}
+
+# The image runs as distroless's nonroot user (65532).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+resources: {}
+#  requests:
+#    cpu: 10m
+#    memory: 32Mi
+#  limits:
+#    memory: 64Mi
+
+# Probes use GET /healthz, which doesn't touch the poller. GET /aircraft would
+# wake it and keep it querying airplanes.live.
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
