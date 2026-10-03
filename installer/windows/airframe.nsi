@@ -2,7 +2,8 @@
 ;
 ; Installs airframe.exe as an auto-start service configured from a settings
 ; page (observer location, radius, port), starts it, and optionally installs
-; the screensaver and makes it the current user's active screensaver.
+; the screensaver and makes it the current user's active screensaver with the
+; chosen inactivity wait.
 ;
 ; Build with "make installer", or directly:
 ;   makensis -DVERSION=x.y.z installer/windows/airframe.nsi
@@ -33,7 +34,7 @@ ManifestSupportedOS all
 !define PUBLISHER   "fireflycons"
 !define SERVICE     "airframe"
 !define BINDIR      "..\..\bin\windows-amd64"
-!define SCR_SOURCE  "Webview2_WebPage_Screensaver.scr"
+!define SCR_SOURCE  "Airframe_ScreenSaver.scr"
 !define SCR_NAME    "Airframe.scr"
 !define REGKEY      "Software\Airframe"
 !define UNINSTKEY   "Software\Microsoft\Windows\CurrentVersion\Uninstall\Airframe"
@@ -52,6 +53,7 @@ Var Lon
 Var Radius
 Var Port
 Var Screensaver
+Var Wait
 Var Place
 Var Looked
 
@@ -60,12 +62,16 @@ Var hLon
 Var hRadius
 Var hPort
 Var hScreensaver
+Var hWait
+Var hWaitLabel
+Var hWaitUnits
 
 !define MUI_ICON   "..\..\screensaver\windows\app.ico"
 !define MUI_UNICON "..\..\screensaver\windows\app.ico"
 !define MUI_ABORTWARNING
 
-!define MUI_FINISHPAGE_LINK "Open the Airframe web page"
+!define MUI_FINISHPAGE_TEXT "${NAME} has been installed on your computer.$\r$\n$\r$\nYou can view the Airframe UI in a web browser at the address below.$\r$\n$\r$\nClick Finish to close Setup."
+!define MUI_FINISHPAGE_LINK "http://localhost:$Port/"
 !define MUI_FINISHPAGE_LINK_LOCATION "http://localhost:$Port/"
 
 !insertmacro MUI_PAGE_WELCOME
@@ -85,9 +91,22 @@ Function .onInit
     Abort
   ${EndIf}
   SetRegView 64
-  StrCpy $Radius 5
+  StrCpy $Radius 15
   StrCpy $Port 7700
   StrCpy $Screensaver ${BST_CHECKED}
+
+  ; Prefill the wait with the current screensaver timeout, in whole minutes.
+  ; SPI_GETSCREENSAVETIMEOUT
+  System::Call 'user32::SystemParametersInfoW(i 14, i 0, *i .r0, i 0) i .r1'
+  ${If} $1 <> 0
+  ${AndIf} $0 > 0
+    IntOp $Wait $0 / 60
+    ${If} $Wait < 1
+      StrCpy $Wait 1
+    ${EndIf}
+  ${Else}
+    StrCpy $Wait 10
+  ${EndIf}
 FunctionEnd
 
 ; Looks up the public IP's location at ipinfo.io, the service the geoip adapter
@@ -168,22 +187,53 @@ Function ConfigPageCreate
   ${NSD_CreateText} 32% 46u 30% 12u $Lon
   Pop $hLon
 
-  ${NSD_CreateLabel} 0 64u 30% 12u "Radius (NM, max ${MAX_RADIUS}):"
+  ${NSD_CreateLabel} 32% 60u 68% 10u "For more accurate coordinates, use your favorite maps site."
   Pop $0
-  ${NSD_CreateText} 32% 62u 30% 12u $Radius
+
+  ${NSD_CreateLabel} 0 76u 30% 12u "Radius (NM, max ${MAX_RADIUS}):"
+  Pop $0
+  ${NSD_CreateText} 32% 74u 30% 12u $Radius
   Pop $hRadius
 
-  ${NSD_CreateLabel} 0 80u 30% 12u "HTTP port:"
+  ${NSD_CreateLabel} 0 92u 30% 12u "HTTP port:"
   Pop $0
-  ${NSD_CreateNumber} 32% 78u 30% 12u $Port
+  ${NSD_CreateNumber} 32% 90u 30% 12u $Port
   Pop $hPort
   ${NSD_SetTextLimit} $hPort 5
 
-  ${NSD_CreateCheckbox} 0 100u 100% 12u "Install the Airframe screensaver and make it active"
+  ${NSD_CreateCheckbox} 0 108u 100% 12u "Install the Airframe screensaver and make it active"
   Pop $hScreensaver
   ${NSD_SetState} $hScreensaver $Screensaver
+  ${NSD_OnClick} $hScreensaver ScreensaverClick
+
+  ${NSD_CreateLabel} 12u 126u 18u 12u "Wait"
+  Pop $hWaitLabel
+  ${NSD_CreateNumber} 32u 124u 30u 12u $Wait
+  Pop $hWait
+  ${NSD_SetTextLimit} $hWait 4
+  ${NSD_CreateLabel} 66u 126u 40u 12u "minutes"
+  Pop $hWaitUnits
+  Call EnableWait
 
   nsDialogs::Show
+FunctionEnd
+
+Function ScreensaverClick
+  Pop $0
+  Call EnableWait
+FunctionEnd
+
+; Enables the wait controls only while the screensaver checkbox is ticked.
+Function EnableWait
+  ${NSD_GetState} $hScreensaver $0
+  ${If} $0 == ${BST_CHECKED}
+    StrCpy $0 1
+  ${Else}
+    StrCpy $0 0
+  ${EndIf}
+  EnableWindow $hWaitLabel $0
+  EnableWindow $hWait $0
+  EnableWindow $hWaitUnits $0
 FunctionEnd
 
 ; IsDecimal: replaces the string on top of the stack with 1 if it is a plain
@@ -257,6 +307,7 @@ Function ConfigPageLeave
   ${NSD_GetText} $hRadius $Radius
   ${NSD_GetText} $hPort $Port
   ${NSD_GetState} $hScreensaver $Screensaver
+  ${NSD_GetText} $hWait $Wait
 
   ${If} $Lat != ""
   ${OrIf} $Lon != ""
@@ -276,6 +327,16 @@ Function ConfigPageLeave
   ${OrIf} $Port > 65535
     MessageBox MB_ICONEXCLAMATION "Port must be a number from 1 to 65535."
     Abort
+  ${EndIf}
+
+  ; 9999 is the most the Screen Saver Settings dialog accepts.
+  ${If} $Screensaver == ${BST_CHECKED}
+    ${If} $Wait == ""
+    ${OrIf} $Wait < 1
+    ${OrIf} $Wait > 9999
+      MessageBox MB_ICONEXCLAMATION "Screensaver wait must be a number of minutes from 1 to 9999."
+      Abort
+    ${EndIf}
   ${EndIf}
 FunctionEnd
 
@@ -323,6 +384,10 @@ Section "Install"
   ${EndIf}
 
   ${If} $Screensaver == ${BST_CHECKED}
+    ; A running copy (screensaver, preview or settings dialog) locks the file.
+    nsExec::Exec 'taskkill.exe /F /IM ${SCR_NAME}'
+    Pop $0
+    Sleep 500
     File "/oname=${SCR_NAME}" "${BINDIR}\${SCR_SOURCE}"
 
     ; SCRNSAVE.EXE is unreliable with spaces in the path, so prefer the 8.3
@@ -333,6 +398,11 @@ Section "Install"
     WriteRegStr HKCU "${DESKTOPKEY}" "ScreenSaveActive" "1"
     ; SPI_SETSCREENSAVEACTIVE, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE
     System::Call 'user32::SystemParametersInfoW(i 17, i 1, p 0, i 3)'
+
+    IntOp $0 $Wait * 60
+    WriteRegStr HKCU "${DESKTOPKEY}" "ScreenSaveTimeOut" $0
+    ; SPI_SETSCREENSAVETIMEOUT (seconds), SPIF_UPDATEINIFILE | SPIF_SENDCHANGE
+    System::Call 'user32::SystemParametersInfoW(i 15, i r0, p 0, i 3)'
 
     ; Point the screensaver at the chosen port. A plain "Url" is moved to the
     ; primary screen's "UrlScreen0" when the screensaver first loads. If
@@ -388,6 +458,11 @@ Section "Uninstall"
       System::Call 'user32::SystemParametersInfoW(i 17, i 0, p 0, i 3)'
     ${EndIf}
   ${EndIf}
+
+  ; A running copy (screensaver, preview or settings dialog) locks the file.
+  nsExec::Exec 'taskkill.exe /F /IM ${SCR_NAME}'
+  Pop $0
+  Sleep 500
 
   Delete "$INSTDIR\airframe.exe"
   Delete "$INSTDIR\${SCR_NAME}"
