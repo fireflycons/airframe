@@ -182,6 +182,7 @@ The flags are persistent, so the Windows `install` subcommand accepts them too. 
     * B1 is a glider, B2 a balloon, B3 a parachutist, B4 a hang glider, B6 a drone and B7 a rocket.
     * C1/C2 are vehicles, and C3–C5 (obstacles) are a hollow triangle.
     * **GA fallback:** if the category is missing or not in the table (A0, B0, B5, C0 and so on), a flight whose callsign equals its registration, ignoring hyphens and case (`G-ABCD` = `GABCD`), is drawn as a light aircraft. Otherwise it's the airliner.
+* The header shows `location.origin`, the server the page was loaded from. When the screensaver falls back from one URL (e.g. a cluster instance) to another (the local service), this shows which one is on screen.
 * The settings dialog prefills from the latest response and POSTs to `/observer`. The server does the real validation, and its `{"error"}` text is shown in the dialog.
 
 ## Aircraft data service (`internal/core/service`)

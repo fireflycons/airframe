@@ -90,6 +90,10 @@ function tickClock() {
 }
 tickClock();
 
+// The server this page came from, so a screensaver that has fallen back to
+// another instance (e.g. the local service) shows which one it is on.
+$('server').textContent = location.origin;
+
 function renderStatus(error) {
   const dot = $('status-dot');
   dot.dataset.state = error ? 'error' : 'ok';
