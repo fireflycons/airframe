@@ -31,19 +31,19 @@ service:
   type: ClusterIP
   port: 80
 
-ingress:
+# Gateway API. Creates an HTTPRoute attached to an existing Gateway, which must
+# allow routes from this release's namespace. TLS is configured on the Gateway.
+gateway:
   enabled: false
-  className: ""
   annotations: {}
-  hosts:
-    - host: airframe.local
-      paths:
-        - path: /
-          pathType: Prefix
-  tls: []
-  #  - secretName: airframe-tls
-  #    hosts:
-  #      - airframe.local
+  parentRefs:
+    - name: gateway
+      # namespace: gateway-system
+      # sectionName: https
+  # Empty matches every hostname the Gateway listener accepts.
+  hostnames:
+    - airframe.local
+  path: /
 
 podAnnotations: {}
 podLabels: {}

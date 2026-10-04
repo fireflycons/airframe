@@ -1,9 +1,8 @@
 airframe is polling for aircraft within {{ .Values.airframe.radius }} NM of {{ .Values.airframe.location | default "the cluster's public IP location" }}.
-{{- if .Values.ingress.enabled }}
-{{- range .Values.ingress.hosts }}
+{{- if .Values.gateway.enabled }}
 
-  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}/
-{{- end }}
+  Routed through Gateway {{ (first .Values.gateway.parentRefs).name }}{{ with .Values.gateway.hostnames }} for {{ join ", " . }}{{ end }}.
+  kubectl --namespace {{ .Release.Namespace }} get httproute {{ include "airframe.fullname" . }}
 {{- else }}
 
   kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "airframe.fullname" . }} 7700:{{ .Values.service.port }}
