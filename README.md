@@ -48,7 +48,7 @@ To upgrade, run the installer for the new version. It removes the existing servi
 * If you later choose a different screensaver, Airframe may disappear from the list in Screen Saver Settings. Right-click `C:\Program Files\Airframe\Airframe.scr` and choose **Install**, or run the installer again.
 * **There is no authentication.** Anyone who can reach the port can view the data and move the observer. If you don't want other machines on your network to use it, don't open the port in Windows Firewall.
 * Changes made in the web UI's settings dialog last until the service restarts. To change the location or radius permanently, run the installer again.
-* The service's logs are not currently visible anywhere. To see what airframe is doing, stop the service and run it from a console (below).
+* The service logs to the Windows **Application** event log under the source `airframe`. Open Event Viewer → Windows Logs → Application, or run `Get-EventLog -LogName Application -Source airframe -Newest 20` in PowerShell.
 
 ### Uninstalling
 

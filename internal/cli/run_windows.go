@@ -4,12 +4,14 @@ package cli
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/fireflycons/airframe/internal/app"
 	"golang.org/x/sys/windows/svc"
+	"golang.org/x/sys/windows/svc/eventlog"
 )
 
 // run executes the app as a Windows service when started by the service
@@ -22,6 +24,16 @@ func run(cfg app.Config) error {
 		return err
 	}
 	if isService {
+		// stdout and stderr are discarded under the service manager, so log to
+		// the event log instead.
+		elog, err := eventlog.Open(serviceName)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			_ = elog.Close()
+		}()
+		slog.SetDefault(slog.New(newEventLogHandler(elog)))
 		return svc.Run(serviceName, &handler{cfg: cfg})
 	}
 

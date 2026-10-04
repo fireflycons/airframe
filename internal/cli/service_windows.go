@@ -122,6 +122,11 @@ func install() error {
 		_ = s.Close()
 	}()
 
+	if err := installEventSource(); err != nil {
+		_ = s.Delete()
+		return err
+	}
+
 	fmt.Printf("service %q installed\n", serviceName)
 	return nil
 }
@@ -147,6 +152,9 @@ func uninstall() error {
 		return err
 	}
 	if err := s.Delete(); err != nil {
+		return err
+	}
+	if err := removeEventSource(); err != nil {
 		return err
 	}
 	fmt.Printf("service %q removed\n", serviceName)

@@ -236,8 +236,8 @@ Behaviour:
 * **Windows service** (`service_windows.go`): `svc.Run("airframe", handler)`.
     * `Execute` runs `app.Run` with a cancellable ctx and cancels it on `Stop` or `Shutdown`.
     * If the app exits by itself, the handler returns exit code 1.
-    * `airframe install [flags]` creates an automatic-start service with the current flags baked into its arguments. `airframe uninstall` stops the service if it is running (waiting up to 20 seconds for it to reach Stopped), then deletes it. Both need an elevated shell.
-    * Under the service manager, stdout and stderr are discarded, so **logs aren't visible** (see gaps).
+    * `airframe install [flags]` creates an automatic-start service with the current flags baked into its arguments, and registers `airframe` as an Application event log source (`eventlog.InstallAsEventCreate`, replacing any stale registration). If registering the source fails, the service is deleted again. `airframe uninstall` stops the service if it is running (waiting up to 20 seconds for it to reach Stopped), deletes it and removes the event source (a missing source is not an error, for services installed by older versions). Both need an elevated shell.
+    * Under the service manager, stdout and stderr are discarded, so `run` sets the default slog logger to `eventLogHandler` (`eventlog_windows.go`). It formats each record with slog's text handler, minus time and level (the event log records both), and writes it as an Information, Warning or Error event with ID 1 (EventCreate.exe's message file accepts 1–1000). Interactive runs still log to stderr.
 * **Windows installer** (`installer/windows/airframe.nsi`, built with `make installer` into `bin/windows-amd64/airframe-setup.exe`):
     * Uses NSIS 3 (at `C:\Program Files (x86)\NSIS`) with the NScurl and nsJSON plugins. It is a 32-bit Unicode stub (the amd64 plugin folder lacks nsDialogs and friends) that requires 64-bit Windows and installs to `Program Files\Airframe`. It asks for elevation once, at launch.
     * `make installer` depends on `build-windows-amd64` and `build-screensaver`, and passes `-DVERSION` (default `git describe`; CI passes `VERSION.txt`).
@@ -318,10 +318,9 @@ Behaviour:
 
 ## Known gaps and follow-ups
 
-* There is no Windows Event Log output, so a running service's logs can't be seen.
 * `POST /observer` changes aren't persisted; a restart goes back to the command-line flags.
 * There is no authentication or CORS on either endpoint.
 * The airline cache is in-memory only.
-* The Windows `install` → `sc start` → `sc stop` → `uninstall` cycle has not been exercised yet. It needs an elevated shell. The installer (`airframe-setup.exe`) builds cleanly but has not yet been run through install, upgrade and uninstall.
+* A fresh install through the installer (`airframe-setup.exe`) has been checked: the service starts and its logs appear in the Application event log. Upgrade and uninstall, and the bare `install` → `sc start` → `sc stop` → `uninstall` cycle, have not been checked yet.
 * `README.md` has no Linux, macOS or Docker installation notes yet.
 * The Docker image is linux/amd64 only.
