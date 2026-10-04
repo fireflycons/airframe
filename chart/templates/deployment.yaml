@@ -1,3 +1,6 @@
+{{- if and .Values.persistence.enabled (gt (int .Values.replicaCount) 1) }}
+{{- fail "replicaCount must be 1 when persistence is enabled: replicas would overwrite each other's config file" }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,6 +9,11 @@ metadata:
     {{- include "airframe.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  {{- if .Values.persistence.enabled }}
+  # A ReadWriteOnce volume can't be shared by the old and new pods.
+  strategy:
+    type: Recreate
+  {{- end }}
   selector:
     matchLabels:
       {{- include "airframe.selectorLabels" . | nindent 6 }}
@@ -38,6 +46,7 @@ spec:
             - {{ printf "--radius=%v" .Values.airframe.radius | quote }}
             - {{ printf "--interval=%s" .Values.airframe.interval | quote }}
             - {{ printf "--listen=:%v" .Values.containerPort | quote }}
+            - "--config=/data/airframe.json"
             {{- range .Values.airframe.extraArgs }}
             - {{ . | quote }}
             {{- end }}
@@ -47,6 +56,9 @@ spec:
               protocol: TCP
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
           {{- with .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
@@ -58,6 +70,14 @@ spec:
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "airframe.fullname" .) }}
+          {{- else }}
+          emptyDir: {}
           {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

@@ -40,19 +40,19 @@ It runs on Windows (as a service or from a console) and on Linux and macOS.
 
 5. Open the link on the final page, `http://localhost:7700/` by default, to see the web UI.
 
-To upgrade, run the installer for the new version. It removes the existing service and installs it again with the settings you enter.
+To upgrade, run the installer for the new version. It removes the existing service and installs it again with the settings you enter. The location and radius you enter replace any saved in the web UI.
 
 ### Notes
 
 * **The screensaver is set for the account that elevated.** If you are a standard user and an administrator enters their credentials at the elevation prompt, the screensaver is configured for the administrator's account, not yours.
 * If you later choose a different screensaver, Airframe may disappear from the list in Screen Saver Settings. Right-click `C:\Program Files\Airframe\Airframe.scr` and choose **Install**, or run the installer again.
 * **There is no authentication.** Anyone who can reach the port can view the data and move the observer. If you don't want other machines on your network to use it, don't open the port in Windows Firewall.
-* Changes made in the web UI's settings dialog last until the service restarts. To change the location or radius permanently, run the installer again.
+* Changes made in the web UI's settings dialog are saved in `C:\ProgramData\Airframe\airframe.json` and survive restarts (see [Saved settings](#saved-settings)).
 * The service logs to the Windows **Application** event log under the source `airframe`. Open Event Viewer → Windows Logs → Application, or run `Get-EventLog -LogName Application -Source airframe -Newest 20` in PowerShell.
 
 ### Uninstalling
 
-Use **Settings > Apps** (or **Programs and Features**) and uninstall **Airframe**. This stops and removes the service and deletes the program files. If Airframe is still your screensaver it is switched off; the screensaver's own preferences are kept.
+Use **Settings > Apps** (or **Programs and Features**) and uninstall **Airframe**. This stops and removes the service and deletes the program files. If Airframe is still your screensaver it is switched off; the screensaver's own preferences are kept. The saved settings in `C:\ProgramData\Airframe` are kept too; delete that folder to remove them.
 
 ### Installing manually
 
@@ -69,7 +69,7 @@ and to remove it:
 airframe uninstall
 ```
 
-The flags given to `install` are stored with the service. The screensaver is only available through the installer.
+The flags given to `install` are stored with the service. If `--location` is given, the location and radius are also written to the service's config file, replacing any saved there. The screensaver is only available through the installer.
 
 ## Running from a console
 
@@ -87,6 +87,22 @@ Press Ctrl+C to stop. In Git Bash's default terminal Ctrl+C doesn't reach the pr
 | `--radius` | `15` | Search radius in nautical miles, greater than 0 and at most 250. |
 | `--interval` | `5s` | How often to poll airplanes.live while in use. |
 | `--listen` | `:7700` | HTTP listen address. |
+| `--config` | see below | Config file for saved settings. |
+
+## Saved settings
+
+airframe saves the location and radius whenever they are changed through the web UI or `POST /observer`, along with a cache of airline names, in a JSON config file. On the next start the saved location and radius are used, and `--location` and `--radius` only apply when nothing has been saved yet. Delete the file to go back to the command line values. If the file doesn't exist, airframe starts as if it were empty.
+
+| Running as | Default config file |
+|---|---|
+| Windows service | `C:\ProgramData\Airframe\airframe.json` |
+| Windows, from a console | `%AppData%\Airframe\airframe.json` |
+| Linux | `$XDG_CONFIG_HOME/airframe/airframe.json`, or `~/.config/airframe/airframe.json` |
+| macOS | `~/Library/Application Support/airframe/airframe.json` |
+| Docker image | `/data/airframe.json`; mount a volume on `/data` to keep it, e.g. `docker run -v airframe-data:/data -p 7700:7700 fireflycons/airframe:<version>` |
+| Helm chart | `/data/airframe.json` on a PersistentVolumeClaim (`persistence.*` in `values.yaml`) |
+
+Use `--config <path>` to put it somewhere else.
 
 ## API
 

@@ -25,17 +25,18 @@ type Provider struct {
 
 var _ ports.AircraftProvider = (*Provider)(nil)
 
-// New creates a Provider using the public airplanes.live API.
-func New() (*Provider, error) {
+// New creates a Provider using the public airplanes.live API. Airline names
+// are loaded from and saved to settings; nil means they are not persisted.
+func New(settings ports.SettingsStore) (*Provider, error) {
 	c, err := api.NewApi()
 	if err != nil {
 		return nil, err
 	}
-	return newProvider(c), nil
+	return newProvider(c, settings), nil
 }
 
-func newProvider(c client) *Provider {
-	return &Provider{client: c, airlines: newAirlineCache(c)}
+func newProvider(c client, settings ports.SettingsStore) *Provider {
+	return &Provider{client: c, airlines: newAirlineCache(c, settings)}
 }
 
 // Aircraft returns all aircraft with a known position within radiusNM of coord.

@@ -26,6 +26,7 @@ var ErrNoData = errors.New("no aircraft data available")
 // It implements ports.AircraftService.
 type Service struct {
 	provider    ports.AircraftProvider
+	store       ports.ObserverStore // nil: observer changes are not saved
 	interval    time.Duration
 	idleTimeout time.Duration
 
@@ -51,6 +52,11 @@ func WithInterval(d time.Duration) Option { return func(s *Service) { s.interval
 
 // WithIdleTimeout sets how long without client requests before polling pauses.
 func WithIdleTimeout(d time.Duration) Option { return func(s *Service) { s.idleTimeout = d } }
+
+// WithObserverStore saves observer changes to store.
+func WithObserverStore(store ports.ObserverStore) Option {
+	return func(s *Service) { s.store = store }
+}
 
 // New creates a Service. Call Start to begin polling.
 func New(provider ports.AircraftProvider, observer domain.Observer, opts ...Option) *Service {
@@ -85,6 +91,14 @@ func (s *Service) SetObserver(observer domain.Observer) error {
 	s.observer = observer
 	s.cache.Store(nil)
 	slog.Info("observer changed", "location", observer.Location.String(), "radius", observer.Radius)
+
+	// Saved with mu held so that concurrent changes are saved in order. A
+	// failed save doesn't fail the change, which is already in effect.
+	if s.store != nil {
+		if err := s.store.SaveObserver(observer); err != nil {
+			slog.Warn("saving observer", "error", err)
+		}
+	}
 	return nil
 }
 

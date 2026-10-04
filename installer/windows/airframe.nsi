@@ -471,4 +471,7 @@ Section "Uninstall"
 
   DeleteRegKey HKLM "${UNINSTKEY}"
   DeleteRegKey HKLM "${REGKEY}"
+
+  ; The service's saved settings in $COMMONAPPDATA\Airframe (the observer and
+  ; airline cache) are deliberately kept, so a reinstall picks them up.
 SectionEnd

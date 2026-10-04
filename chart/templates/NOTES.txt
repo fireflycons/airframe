@@ -10,3 +10,8 @@ airframe is polling for aircraft within {{ .Values.airframe.radius }} NM of {{ .
 {{- end }}
 
 POST /observer has no authentication. Anyone who can reach the service can move the observer.
+{{- if .Values.persistence.enabled }}
+
+Observer changes and the airline cache are saved on PVC {{ .Values.persistence.existingClaim | default (include "airframe.fullname" .) }}.
+A saved observer takes precedence over airframe.location and airframe.radius.
+{{- end }}

@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"sync"
 
+	"github.com/fireflycons/airframe/internal/core/ports"
 	api "github.com/fireflycons/airplaneslive"
 )
 
@@ -25,15 +26,35 @@ func airlineCode(flight string) string {
 }
 
 // airlineCache caches successful airline name lookups by ICAO code.
-// A successful lookup with no match is cached as "".
+// A successful lookup with no match is cached as "". If settings is set, the
+// cache is loaded from it and saved whenever new names are added.
 type airlineCache struct {
-	client client
-	mu     sync.Mutex
-	names  map[string]string
+	client   client
+	settings ports.SettingsStore
+	mu       sync.Mutex
+	names    map[string]string
 }
 
-func newAirlineCache(c client) *airlineCache {
-	return &airlineCache{client: c, names: map[string]string{}}
+// savedSettings is the provider's section of the config file.
+type savedSettings struct {
+	Airlines map[string]string `json:"airlines"`
+}
+
+func newAirlineCache(c client, settings ports.SettingsStore) *airlineCache {
+	cache := &airlineCache{client: c, settings: settings, names: map[string]string{}}
+	if settings == nil {
+		return cache
+	}
+	var saved savedSettings
+	if _, err := settings.Load(&saved); err != nil {
+		// It's only a cache; start empty and overwrite it on the next save.
+		slog.Warn("loading saved airline names", "error", err)
+		return cache
+	}
+	for code, name := range saved.Airlines {
+		cache.names[code] = name
+	}
+	return cache
 }
 
 // resolve returns airline names for the given codes, looking up at most
@@ -41,6 +62,7 @@ func newAirlineCache(c client) *airlineCache {
 func (c *airlineCache) resolve(ctx context.Context, codes []string) map[string]string {
 	result := map[string]string{}
 	lookups := 0
+	added := false
 
 	for _, code := range codes {
 		if code == "" {
@@ -67,10 +89,27 @@ func (c *airlineCache) resolve(ctx context.Context, codes []string) map[string]s
 			c.mu.Lock()
 			c.names[code] = name
 			c.mu.Unlock()
+			added = true
 		}
 		result[code] = name
 	}
+	if added {
+		c.save()
+	}
 	return result
+}
+
+// save writes the cache to settings, if set. Lookups are capped per refresh,
+// so this is at most one small write per poll, and only while names are new.
+func (c *airlineCache) save() {
+	if c.settings == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if err := c.settings.Save(savedSettings{Airlines: c.names}); err != nil {
+		slog.Warn("saving airline names", "error", err)
+	}
 }
 
 func (c *airlineCache) lookup(ctx context.Context, code string) (string, error) {

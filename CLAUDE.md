@@ -87,12 +87,13 @@ What was built, how it works, and why.
 |---|---|
 | `cmd/airframe` | `main`; calls `cli.Execute()`. |
 | `internal/core/domain` | `Aircraft`, `AircraftData` (the `GET /aircraft` payload) and `Observer` (location and radius, `Validate()`, `MaxRadius = 250`). |
-| `internal/core/ports` | Interfaces. Driven: `AircraftProvider` and `Locator`. Driving: `AircraftService` (`Aircraft(ctx)` and `SetObserver(Observer)`). |
+| `internal/core/ports` | Interfaces. Driven: `AircraftProvider`, `Locator`, `ObserverStore` (`SaveObserver`) and `SettingsStore` (`Load`/`Save` of one component's own settings). Driving: `AircraftService` (`Aircraft(ctx)` and `SetObserver(Observer)`). |
 | `internal/core/service` | The aircraft data service: background poller, cache, idle/wake logic and observer changes. |
 | `internal/adapters/airplaneslive` | `AircraftProvider` for airplanes.live: maps records, derives missing fields, caches airline names. |
+| `internal/adapters/configfile` | The JSON config file: the saved observer and per-provider settings sections. Implements `ObserverStore`; `Section(name)` gives a `SettingsStore`. |
 | `internal/adapters/geoip` | `Locator` using `https://ipinfo.io/json` (`"loc":"lat,lon"`). No API key. |
 | `internal/adapters/httpapi` | HTTP server: the web UI (`GET /`, `/static/`), `GET /aircraft`, `POST /observer` and `GET /healthz`, with graceful shutdown. The UI's files are embedded from `web/`. |
-| `internal/app` | `Config` and `Run(ctx, cfg)`: wires adapters to the service, blocks until ctx is cancelled. Logs `shutting down` and `airframe stopped`. |
+| `internal/app` | `Config` and `Run(ctx, cfg)`: opens the config file, picks the initial observer, wires adapters to the service, blocks until ctx is cancelled. Logs `shutting down` and `airframe stopped`. |
 | `internal/cli` | Cobra root command and flags; platform runners (`run_other.go` is `!windows`, `run_windows.go`); `service_windows.go`. |
 
 Other top-level pieces:
@@ -117,8 +118,29 @@ Dependencies point inwards: adapters import `core`, and `core` imports no adapte
 | `--radius` | 15 | NM. Must be greater than 0 and at most `domain.MaxRadius` (250). |
 | `--interval` | 5s | Poll interval. |
 | `--listen` | `:7700` | HTTP listen address. Not in the original outline. |
+| `--config` | per platform | Config file path (see [Config file](#config-file)). Not in the original outline. |
 
 The flags are persistent, so the Windows `install` subcommand accepts them too. All validation is in `cli.config()`.
+
+## Config file
+
+* **Purpose.** It saves the observer whenever it changes, and provider-specific settings. The airplaneslive provider keeps its airline-name cache there.
+* **Format.** It is JSON: `{"observer": {...}, "providers": {"<name>": {...}}}`.
+    * `providers` is held as `map[string]json.RawMessage`. A provider reads and writes only its own section (`Store.Section(name)`), and sections it doesn't know about are kept when it saves.
+* **Precedence.** A saved observer wins over `--location`/`--radius`, which only seed the first run. If a saved observer exists, geoip isn't called, and startup logs `using saved observer`.
+    * This lets the Windows service (whose flags are baked into its arguments) and the Helm pod (whose flags come from values) keep `POST /observer` changes across restarts.
+    * To go back to the flags, delete the file.
+* **Missing file.** It is not an error: the store starts empty. A malformed file, or an observer that fails `Validate()`, **fails startup**, so it is never silently overwritten.
+* **Saving.**
+    * Every save rewrites the whole file atomically (temp file in the same directory, `Sync`, `Rename`), creating the directory if needed.
+    * A failed save is logged as a warning. It doesn't fail `POST /observer`, because the change is already applied.
+    * `SetObserver` saves while holding `mu`, so concurrent changes are saved in order.
+* **Default locations** (`defaultConfigPath()` in `run_windows.go` / `run_other.go`):
+    * **Windows service:** `%ProgramData%\Airframe\airframe.json` (`serviceConfigPath()`, using `KnownFolderPath`). LocalSystem's own profile is under System32, so it isn't used.
+    * **Windows interactive:** `%AppData%\Airframe\airframe.json`. It is kept separate because a standard user can't modify files the service created, and so an interactive run doesn't overwrite the service's settings.
+    * **Linux/macOS:** `os.UserConfigDir()/airframe/airframe.json` (`$XDG_CONFIG_HOME` or `~/.config`; `~/Library/Application Support`).
+    * **Docker and Helm:** `/data/airframe.json`.
+    * If no default can be found, it warns and runs without saving.
 
 ## HTTP API
 
@@ -185,7 +207,7 @@ Behaviour:
     * **While active** it refreshes on each tick. A `wake` refreshes immediately; this covers a request that arrives while active with an empty cache.
     * On a tick, if more than `idleTimeout` (60s) has passed since `lastRequest`, it goes idle instead of refreshing.
 4. `release(idle)` closes the waiters and drains any leftover `wake` token. If it is about to go idle but a waiter has just registered, it stays active and leaves the waiter for the pending wake to serve, so nobody is released without a fresh fetch.
-5. **Observer changes.** `SetObserver` validates the observer, then under `mu` sets it and clears the cache to nil. The next GET therefore waits for data for the new observer.
+5. **Observer changes.** `SetObserver` validates the observer, then under `mu` sets it, clears the cache to nil and saves it to the `ObserverStore` (`WithObserverStore`), if one is set. The next GET therefore waits for data for the new observer.
     * `refresh()` fetches using the observer it read under `mu`.
     * It stores the result only if the observer is still the same (checked under `mu`). If not, it loops and fetches again.
     * This guarantees that GET never returns aircraft labelled with an observer they weren't fetched for.
@@ -211,7 +233,9 @@ Behaviour:
     * Only callsigns matching `^[A-Z]{3}\d` are looked up, using `AirlineIcao()` then `Airlines(ctx, "", "", "", "", icao, DefaultListOpts)`.
     * Successful lookups are cached in memory by ICAO code. A lookup with no match is cached as `""`. Errors are not cached.
     * At most `maxNewLookups = 3` uncached codes are looked up per refresh, so a cold start doesn't burst the API. Names fill in over the next few polls.
-    * The cache is not persisted.
+    * The cache is persisted in the config file's `providers.airplaneslive` section (`{"airlines": {...}}`), through a `ports.SettingsStore` passed to `New`; nil disables this.
+        * It is loaded when the provider is created. A section that won't decode is logged and ignored, because it's only a cache.
+        * It is saved after a `resolve` that added names, so at most once per poll and only while the cache is warming.
 
 ## Platform variants
 
@@ -220,6 +244,7 @@ Behaviour:
     * It is a multi-stage build. A `golang:1.26` stage builds a static binary with `CGO_ENABLED=0`, which is copied into `gcr.io/distroless/static-debian12:nonroot`. That base holds only CA certificates (needed for airplanes.live and ipinfo.io), tzdata and a nonroot user.
     * The entrypoint is `/airframe` and it exposes 7700, so flags go after the image name: `docker run -p 7700:7700 fireflycons/airframe:<ver> --location 51.47,-0.4543`. `docker stop` sends SIGTERM, which the non-Windows runner handles.
     * `make image` tags it `fireflycons/airframe:<VERSION.txt>` locally. The release workflow pushes `:<version>` and `:latest` to Docker Hub (linux/amd64 only).
+    * The entrypoint passes `--config /data/airframe.json`, and `/data` is a `VOLUME` owned by 65532 (created in the build stage, because distroless has no shell), so a named volume is writable by nonroot. A `--config` after the image name overrides it.
     * `.dockerignore` is an allow-list: only `go.mod`, `go.sum`, `cmd/` and `internal/` are sent as build context.
 * **Helm chart** (`chart/`): a Deployment, a Service (ClusterIP, port 80 → `http`) and an optional Gateway API `HTTPRoute` (`gateway.enabled`).
     * The chart doesn't create a Gateway. The route attaches to an existing one through `gateway.parentRefs`, and that Gateway must allow routes from the release's namespace. TLS belongs on the Gateway.
@@ -228,6 +253,10 @@ Behaviour:
     * `airframe.location`, `airframe.radius` and `airframe.interval` become flags; `--listen` comes from `containerPort` (7700). With an empty location, auto-detect finds the cluster's egress IP.
     * Probes use `GET /healthz`, not `/aircraft`, which would wake the poller and keep it querying airplanes.live.
     * `replicaCount` defaults to 1. Each replica polls on its own, and `POST /observer` changes only the replica that receives it.
+    * **Persistence** (`persistence.*`, enabled by default):
+        * A PVC (`templates/pvc.yaml`, or `existingClaim`) is mounted at `/data`, and the pod runs with `--config=/data/airframe.json`. When persistence is disabled, `/data` is an `emptyDir` instead.
+        * With persistence on, the Deployment uses the `Recreate` strategy, so an RWO volume never needs two pods. The template `fail`s if `replicaCount > 1`.
+        * `podSecurityContext.fsGroup: 65532` makes the volume writable. The root filesystem stays read-only.
     * Pods run as UID 65532 (distroless nonroot) with a read-only root filesystem and all capabilities dropped.
 * **Windows, interactive** (`run_windows.go`): `svc.IsWindowsService()` is false, so it uses `NotifyContext(os.Interrupt, SIGTERM)`.
     * Go delivers Ctrl+C and Ctrl+Break as `os.Interrupt`.
@@ -236,7 +265,9 @@ Behaviour:
 * **Windows service** (`service_windows.go`): `svc.Run("airframe", handler)`.
     * `Execute` runs `app.Run` with a cancellable ctx and cancels it on `Stop` or `Shutdown`.
     * If the app exits by itself, the handler returns exit code 1.
-    * `airframe install [flags]` creates an automatic-start service with the current flags baked into its arguments, and registers `airframe` as an Application event log source (`eventlog.InstallAsEventCreate`, replacing any stale registration). If registering the source fails, the service is deleted again. `airframe uninstall` stops the service if it is running (waiting up to 20 seconds for it to reach Stopped), deletes it and removes the event source (a missing source is not an error, for services installed by older versions). Both need an elevated shell.
+    * `airframe install [flags]` creates an automatic-start service with the current flags baked into its arguments (`--config` only if given explicitly).
+        * If `--location` is given, it also saves the observer to the service's config file (the explicit `--config` path, or ProgramData), so a reinstall overrides an observer saved there earlier.
+        * It also registers `airframe` as an Application event log source (`eventlog.InstallAsEventCreate`, replacing any stale registration). If registering the source fails, the service is deleted again. `airframe uninstall` stops the service if it is running (waiting up to 20 seconds for it to reach Stopped), deletes it and removes the event source (a missing source is not an error, for services installed by older versions). Both need an elevated shell.
     * Under the service manager, stdout and stderr are discarded, so `run` sets the default slog logger to `eventLogHandler` (`eventlog_windows.go`). It formats each record with slog's text handler, minus time and level (the event log records both), and writes it as an Information, Warning or Error event with ID 1 (EventCreate.exe's message file accepts 1–1000). Interactive runs still log to stderr.
 * **Windows installer** (`installer/windows/airframe.nsi`, built with `make installer` into `bin/windows-amd64/airframe-setup.exe`):
     * Uses NSIS 3 (at `C:\Program Files (x86)\NSIS`) with the NScurl and nsJSON plugins. It is a 32-bit Unicode stub (the amd64 plugin folder lacks nsDialogs and friends) that requires 64-bit Windows and installs to `Program Files\Airframe`. It asks for elevation once, at launch.
@@ -250,7 +281,7 @@ Behaviour:
         * The port is written to HKCU `Software\Airframe-Screensaver\Url`, or to `UrlScreen0` if that already holds a localhost URL.
         * If the user picks another screensaver, Airframe may drop out of the Screen Saver Settings list. Right-click the `.scr` and choose **Install**, or re-run setup.
     * **HKCU is the elevating account.** If a standard user elevates with someone else's admin credentials, the screensaver is set for that admin account.
-    * The uninstaller removes the service and the files. It clears `SCRNSAVE.EXE` only if it still points at Airframe, and keeps the screensaver's own settings.
+    * The uninstaller removes the service and the files. It keeps `%ProgramData%\Airframe` (the saved observer and airline cache). It clears `SCRNSAVE.EXE` only if it still points at Airframe, and keeps the screensaver's own settings.
 
 ## Windows screensaver (`screensaver/windows`)
 
@@ -291,7 +322,8 @@ Behaviour:
 * `Description` is `omitempty`.
 * `Category` (`omitempty`) was added to `Aircraft` so clients can tell ground vehicles from aircraft.
 * `AircraftData.Location` and `Radius` reflect the current observer, which can change at runtime through `POST /observer`, rather than always the command line.
-* `POST /observer`, `GET /healthz` and the `--listen` flag were added.
+* `POST /observer`, `GET /healthz`, and the `--listen` and `--config` flags were added.
+* The observer is saved to a config file and, once saved, takes precedence over `--location`/`--radius`.
 * Ground traffic on the radar is not labelled (see Web UI).
 * The non-Windows runner uses `!windows` rather than `linux`.
 * The installer also asks for the screensaver's inactivity delay.
@@ -318,9 +350,7 @@ Behaviour:
 
 ## Known gaps and follow-ups
 
-* `POST /observer` changes aren't persisted; a restart goes back to the command-line flags.
 * There is no authentication or CORS on either endpoint.
-* The airline cache is in-memory only.
 * A fresh install through the installer (`airframe-setup.exe`) has been checked: the service starts and its logs appear in the Application event log. Upgrade and uninstall, and the bare `install` → `sc start` → `sc stop` → `uninstall` cycle, have not been checked yet.
 * `README.md` has no Linux, macOS or Docker installation notes yet.
 * The Docker image is linux/amd64 only.

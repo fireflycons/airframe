@@ -29,3 +29,15 @@ type AircraftService interface {
 type Locator interface {
 	Locate(ctx context.Context) (geocoord.Coordinate, error)
 }
+
+// ObserverStore is a driven port that persists observer changes.
+type ObserverStore interface {
+	SaveObserver(observer domain.Observer) error
+}
+
+// SettingsStore is a driven port that loads and saves one component's own
+// settings. Load reports whether any settings were found.
+type SettingsStore interface {
+	Load(v any) (found bool, err error)
+	Save(v any) error
+}

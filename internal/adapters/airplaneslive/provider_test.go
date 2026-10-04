@@ -2,6 +2,7 @@ package airplaneslive
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -62,7 +63,7 @@ func TestMapping(t *testing.T) {
 		airlines: map[string]string{"RYR": "Ryanair"},
 	}
 
-	got, err := newProvider(fc).Aircraft(t.Context(), observer, 25)
+	got, err := newProvider(fc, nil).Aircraft(t.Context(), observer, 25)
 	require.NoError(t, err)
 	require.Len(t, got, 1)
 
@@ -97,7 +98,7 @@ func TestOnGround(t *testing.T) {
 	fc := &fakeClient{aircraft: []api.Aircraft{{
 		Hex: "abc", AltBaro: api.AltBaro{IsGround: true}, Lat: 51.47, Lon: -0.45, Mach: 0.1,
 	}}}
-	got, err := newProvider(fc).Aircraft(t.Context(), observer, 25)
+	got, err := newProvider(fc, nil).Aircraft(t.Context(), observer, 25)
 	require.NoError(t, err)
 	require.True(t, got[0].OnGround)
 	require.Zero(t, got[0].BarometricAltitude)
@@ -110,7 +111,7 @@ func TestPositionFallbackAndSkip(t *testing.T) {
 		{Hex: "none"},
 		{Hex: "bad", Lat: 95, Lon: 0},
 	}}
-	got, err := newProvider(fc).Aircraft(t.Context(), observer, 25)
+	got, err := newProvider(fc, nil).Aircraft(t.Context(), observer, 25)
 	require.NoError(t, err)
 	require.Len(t, got, 1)
 
@@ -127,7 +128,7 @@ func TestDeriveSpeeds(t *testing.T) {
 		{Hex: "tas", AltBaro: api.AltBaro{Altitude: 38000}, TAS: 459, Lat: 51, Lon: 0},
 		{Hex: "mach", AltBaro: api.AltBaro{Altitude: 38000}, Mach: 0.8, Lat: 51, Lon: 0},
 	}}
-	got, err := newProvider(fc).Aircraft(t.Context(), observer, 25)
+	got, err := newProvider(fc, nil).Aircraft(t.Context(), observer, 25)
 	require.NoError(t, err)
 	require.InDelta(t, 0.8, got[0].Mach, 0.001)
 	require.InDelta(t, 458.9, got[1].TrueAirSpeed, 0.5)
@@ -138,7 +139,7 @@ func TestDeriveSpeeds(t *testing.T) {
 
 func TestAirlineCache(t *testing.T) {
 	fc := &fakeClient{airlines: map[string]string{"BAW": "British Airways"}}
-	c := newAirlineCache(fc)
+	c := newAirlineCache(fc, nil)
 	ctx := t.Context()
 
 	// Hit, no-match and non-airline callsigns; duplicates looked up once.
@@ -154,7 +155,7 @@ func TestAirlineCache(t *testing.T) {
 
 func TestAirlineErrorsNotCached(t *testing.T) {
 	fc := &fakeClient{airlineErr: errors.New("boom")}
-	c := newAirlineCache(fc)
+	c := newAirlineCache(fc, nil)
 
 	require.Empty(t, c.resolve(t.Context(), []string{"BAW"}))
 	fc.airlineErr = nil
@@ -165,7 +166,7 @@ func TestAirlineErrorsNotCached(t *testing.T) {
 
 func TestAirlineLookupCap(t *testing.T) {
 	fc := &fakeClient{airlines: map[string]string{}}
-	c := newAirlineCache(fc)
+	c := newAirlineCache(fc, nil)
 
 	codes := make([]string, 0, 7)
 	for i := range 7 {
@@ -183,4 +184,54 @@ func TestAirlineCode(t *testing.T) {
 	require.Empty(t, airlineCode("GABCD"))
 	require.Empty(t, airlineCode("N123AB"))
 	require.Empty(t, airlineCode(""))
+}
+
+// fakeSettings is a ports.SettingsStore that holds the section as JSON.
+type fakeSettings struct {
+	data  []byte
+	saves int
+}
+
+func (f *fakeSettings) Load(v any) (bool, error) {
+	if f.data == nil {
+		return false, nil
+	}
+	return true, json.Unmarshal(f.data, v)
+}
+
+func (f *fakeSettings) Save(v any) error {
+	f.saves++
+	var err error
+	f.data, err = json.Marshal(v)
+	return err
+}
+
+func TestAirlineCachePersisted(t *testing.T) {
+	settings := &fakeSettings{data: []byte(`{"airlines":{"BAW":"British Airways","ZZZ":""}}`)}
+	fc := &fakeClient{airlines: map[string]string{"RYR": "Ryanair"}}
+	c := newAirlineCache(fc, settings)
+
+	// Saved names, including the no-match, are not looked up again.
+	names := c.resolve(t.Context(), []string{"BAW", "ZZZ"})
+	require.Equal(t, map[string]string{"BAW": "British Airways", "ZZZ": ""}, names)
+	require.Empty(t, fc.lookupCalls)
+	require.Zero(t, settings.saves, "nothing new to save")
+
+	c.resolve(t.Context(), []string{"RYR"})
+	require.Equal(t, 1, settings.saves)
+	require.JSONEq(t, `{"airlines":{"BAW":"British Airways","ZZZ":"","RYR":"Ryanair"}}`, string(settings.data))
+
+	// A failed lookup is neither cached nor saved.
+	fc.airlineErr = errors.New("boom")
+	c.resolve(t.Context(), []string{"EZY"})
+	require.Equal(t, 1, settings.saves)
+}
+
+func TestAirlineCacheBadSettings(t *testing.T) {
+	settings := &fakeSettings{data: []byte(`{"airlines":[]}`)}
+	fc := &fakeClient{airlines: map[string]string{"BAW": "British Airways"}}
+	c := newAirlineCache(fc, settings)
+
+	require.Equal(t, "British Airways", c.resolve(t.Context(), []string{"BAW"})["BAW"])
+	require.JSONEq(t, `{"airlines":{"BAW":"British Airways"}}`, string(settings.data))
 }

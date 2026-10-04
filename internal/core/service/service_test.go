@@ -208,3 +208,32 @@ func TestObserverChangedDuringFetch(t *testing.T) {
 	require.Equal(t, elsewhere, data.Location)
 	require.Equal(t, []geocoord.Coordinate{origin, elsewhere}, p.coords)
 }
+
+type fakeStore struct {
+	saved []domain.Observer
+	err   error
+}
+
+func (f *fakeStore) SaveObserver(o domain.Observer) error {
+	f.saved = append(f.saved, o)
+	return f.err
+}
+
+func TestSetObserverSaves(t *testing.T) {
+	store := &fakeStore{}
+	s := newStarted(t, &fakeProvider{}, WithInterval(time.Hour), WithObserverStore(store))
+
+	require.Error(t, s.SetObserver(domain.Observer{Location: elsewhere, Radius: 0}))
+	require.Empty(t, store.saved, "an invalid observer is not saved")
+
+	want := domain.Observer{Location: elsewhere, Radius: 50}
+	require.NoError(t, s.SetObserver(want))
+	require.Equal(t, []domain.Observer{want}, store.saved)
+
+	// A failed save doesn't fail the change.
+	store.err = errors.New("disk full")
+	require.NoError(t, s.SetObserver(domain.Observer{Location: origin, Radius: 10}))
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	require.Equal(t, domain.Observer{Location: origin, Radius: 10}, s.observer)
+}

@@ -11,7 +11,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/fireflycons/airframe/internal/adapters/configfile"
 	"github.com/fireflycons/airframe/internal/app"
+	"github.com/fireflycons/airframe/internal/core/domain"
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"
@@ -99,6 +101,18 @@ func install() error {
 		args = append(args, "--location", cfg.Location.String())
 	}
 
+	// The service's config defaults to ProgramData, not the interactive
+	// default that config() chose for this elevated shell.
+	configPath := flags.config
+	if configPath != "" {
+		args = append(args, "--config", configPath)
+	} else if configPath, err = serviceConfigPath(); err != nil {
+		return err
+	}
+	if err := seedObserver(configPath, cfg); err != nil {
+		return err
+	}
+
 	m, err := mgr.Connect()
 	if err != nil {
 		return fmt.Errorf("connecting to service manager (run as administrator): %w", err)
@@ -128,6 +142,25 @@ func install() error {
 	}
 
 	fmt.Printf("service %q installed\n", serviceName)
+	return nil
+}
+
+// seedObserver saves the observer given on the command line to the service's
+// config file. A saved observer takes precedence over the flags, so without
+// this, reinstalling with a new location would have no effect. With no
+// --location (auto-detect), the config file is left as it is.
+func seedObserver(path string, cfg app.Config) error {
+	if cfg.Location == nil {
+		return nil
+	}
+	store, err := configfile.Open(path)
+	if err != nil {
+		return err
+	}
+	if err := store.SaveObserver(domain.Observer{Location: *cfg.Location, Radius: cfg.Radius}); err != nil {
+		return err
+	}
+	fmt.Printf("observer saved to %s\n", path)
 	return nil
 }
 
