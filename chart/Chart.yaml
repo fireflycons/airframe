@@ -1,0 +1,6 @@
+apiVersion: v2
+name: airframe
+description: Serves aircraft near an observer location from airplanes.live, with a web UI.
+type: application
+version: 0.2.0
+appVersion: "0.1.0"

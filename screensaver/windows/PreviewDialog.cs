@@ -1,0 +1,138 @@
+using System;
+using System.Drawing;
+using System.IO;
+using System.Windows.Forms;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
+
+namespace Web_Page_Screensaver
+{
+    /// <summary>
+    /// Small web preview pop-up window for checking how the selected URL actually renders as a web screensaver
+    /// </summary>
+    public class PreviewDialog : Form
+    {
+        private WebView2 webView;
+        private Label lblStatus;
+        private ModernButton btnClose;
+        private string targetUrl;
+        private double zoomFactor;
+        private bool isMuted;
+
+        public PreviewDialog(string url, double zoom, bool mute)
+        {
+            targetUrl = url;
+            zoomFactor = zoom > 0 ? zoom : 1.0;
+            isMuted = mute;
+
+            Text = "Live Web Screensaver Preview - " + url;
+            Size = new Size(1024, 640);
+            StartPosition = FormStartPosition.CenterParent;
+            KeyPreview = true;
+
+            try
+            {
+                Icon = ModernAppIcon.CreateAppIcon(32);
+            }
+            catch { }
+
+            InitializeUI();
+            InitializeWebViewAsync();
+
+            KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Escape) Close();
+            };
+        }
+
+        private void InitializeUI()
+        {
+            var header = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 44,
+                Padding = new Padding(12, 6, 12, 6),
+                BackColor = ThemeManager.Colors.CardBackground
+            };
+
+            lblStatus = new Label
+            {
+                Text = "Loading page... " + targetUrl,
+                Font = new Font("Segoe UI", 9f),
+                ForeColor = ThemeManager.Colors.TextSecondary,
+                AutoSize = false,
+                Width = 780,
+                Height = 30,
+                Location = new Point(14, 10),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            btnClose = new ModernButton
+            {
+                Text = "Close (Esc)",
+                Style = ModernButtonStyle.Secondary,
+                Width = 100,
+                Height = 30,
+                Anchor = AnchorStyles.Right | AnchorStyles.Top,
+                Location = new Point(896, 7),
+                Cursor = Cursors.Hand
+            };
+            btnClose.Click += (s, e) => Close();
+
+            header.Controls.Add(lblStatus);
+            header.Controls.Add(btnClose);
+            Controls.Add(header);
+
+            ThemeManager.SetFormTitleBarTheme(Handle, ThemeManager.IsLightTheme);
+        }
+
+        private async void InitializeWebViewAsync()
+        {
+            webView = new WebView2
+            {
+                Dock = DockStyle.Fill
+            };
+            Controls.Add(webView);
+            webView.BringToFront();
+
+            try
+            {
+                string userDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Airframe-Screensaver");
+                var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
+                await webView.EnsureCoreWebView2Async(env);
+
+                if (webView.CoreWebView2 != null)
+                {
+                    webView.CoreWebView2.IsMuted = isMuted;
+
+                    webView.NavigationCompleted += (s, e) =>
+                    {
+                        try
+                        {
+                            webView.ZoomFactor = zoomFactor;
+                            lblStatus.Text = e.IsSuccess 
+                                ? $"✔ {targetUrl} ({(int)(zoomFactor * 100)}% zoom)"
+                                : $"⚠ Load failed: {e.WebErrorStatus}";
+                        }
+                        catch { }
+                    };
+
+                    webView.CoreWebView2.Navigate(targetUrl);
+                }
+            }
+            catch (Exception ex)
+            {
+                lblStatus.Text = "WebView2 initialisation failed: " + ex.Message;
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && webView != null)
+            {
+                webView.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+    }
+}

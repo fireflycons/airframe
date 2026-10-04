@@ -1,0 +1,32 @@
+name: Set up NSIS and make
+description: Installs GNU make, NSIS 3 and the NScurl and nsJSON plugins that installer/windows/airframe.nsi needs.
+
+inputs:
+  nscurl-version:
+    description: NScurl release tag (github.com/negrutiu/nsis-nscurl)
+    default: v26.9.28.324
+
+runs:
+  using: composite
+  steps:
+    - name: Install NSIS and plugins
+      shell: pwsh
+      run: |
+        choco install nsis -y --no-progress
+        $nsis = 'C:\Program Files (x86)\NSIS'
+        $tmp  = $env:RUNNER_TEMP
+        # Both zips hold Plugins\<arch>-<charset>\*.dll, so they extract
+        # straight into the NSIS install folder.
+        Invoke-WebRequest "https://github.com/negrutiu/nsis-nscurl/releases/download/${{ inputs.nscurl-version }}/NScurl.zip" -OutFile "$tmp\NScurl.zip"
+        Invoke-WebRequest 'https://nsis.sourceforge.io/mediawiki/images/f/f0/NsJSON.zip' -OutFile "$tmp\nsJSON.zip"
+        Expand-Archive "$tmp\NScurl.zip" -DestinationPath $nsis -Force
+        Expand-Archive "$tmp\nsJSON.zip" -DestinationPath $nsis -Force
+        Get-ChildItem "$nsis\Plugins\x86-unicode" -Filter 'ns*.dll' | Select-Object -ExpandProperty Name
+
+    - name: Ensure GNU make
+      shell: pwsh
+      run: |
+        if (-not (Get-Command make -ErrorAction SilentlyContinue)) {
+          choco install make -y --no-progress
+        }
+        make --version

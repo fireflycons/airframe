@@ -1,0 +1,105 @@
+# Each replica polls airplanes.live on its own, and POST /observer changes only
+# the replica that receives it, so more than one replica is rarely useful. It
+# must be 1 while persistence is enabled.
+replicaCount: 1
+
+image:
+  repository: fireflycons/airframe
+  # Defaults to the chart's appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Command line flags passed to airframe.
+airframe:
+  # "lat,lon". Empty auto-detects from the public IP, which in a cluster is the
+  # cluster's egress address.
+  location: ""
+  # Radius in NM, greater than 0 and at most 250.
+  radius: 15
+  # Poll interval.
+  interval: 5s
+  # Extra arguments appended to the command line.
+  extraArgs: []
+
+# The config file (/data/airframe.json) saves observer changes made with
+# POST /observer, and the airline name cache. A saved observer takes
+# precedence over airframe.location and airframe.radius, which only seed the
+# first run. When disabled, /data is an emptyDir that lasts as long as the pod.
+persistence:
+  enabled: true
+  # Use an existing PVC instead of creating one.
+  existingClaim: ""
+  # Empty uses the cluster's default StorageClass; "-" sets no class.
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce
+  # The file is a few KB. Some provisioners round small sizes up.
+  size: 128Mi
+  annotations: {}
+  #  helm.sh/resource-policy: keep
+
+# Port the container listens on (--listen).
+containerPort: 7700
+
+service:
+  type: ClusterIP
+  port: 80
+
+# Gateway API. Creates an HTTPRoute attached to an existing Gateway, which must
+# allow routes from this release's namespace. TLS is configured on the Gateway.
+gateway:
+  enabled: false
+  annotations: {}
+  parentRefs:
+    - name: gateway
+      # namespace: gateway-system
+      # sectionName: https
+  # Empty matches every hostname the Gateway listener accepts.
+  hostnames:
+    - airframe.local
+  path: /
+
+podAnnotations: {}
+podLabels: {}
+
+# The image runs as distroless's nonroot user (65532).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  # Makes the /data volume writable by the nonroot user.
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+resources: {}
+#  requests:
+#    cpu: 10m
+#    memory: 32Mi
+#  limits:
+#    memory: 64Mi
+
+# Probes use GET /healthz, which doesn't touch the poller. GET /aircraft would
+# wake it and keep it querying airplanes.live.
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
