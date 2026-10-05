@@ -154,6 +154,7 @@ The flags are persistent, so the Windows `install` subcommand accepts them too. 
 * **There is no authentication.** Anyone who can reach the port can move the observer.
 * All JSON uses camelCase tags.
 * **`GET /`** serves the web UI (see below). **`GET /static/*`** serves its CSS and JS.
+* **`GET /screensaver`** serves the same UI in screensaver mode: the header shows "Press ESC to exit the screensaver". The Windows screensaver treats pages on this path as interactive (see [Windows screensaver](#windows-screensaver-screensaverwindows)).
 * **`GET /healthz`** returns 200 with an empty body. It doesn't call the service, so it never wakes the poller. It is used by the Helm chart's probes.
 
 ## Web UI (`internal/adapters/httpapi/web`)
@@ -161,6 +162,7 @@ The flags are persistent, so the Windows `install` subcommand accepts them too. 
 * `index.html`, `app.css` and `app.js` are embedded with `//go:embed web`, so the binary is self-contained.
 * **There are no third-party JS dependencies and no build step.** The UI uses plain HTML, CSS, inline SVG and one vanilla ES module: `fetch`, `<dialog>`, HTML5 form validation, and SVG for the radar and icons.
 * `index.html` is an `html/template`, parsed once at startup. It renders the poll interval as `<body data-interval-ms="…">`, so the page polls `/aircraft` at the `--interval` rate without an extra request.
+    * It also gets a `Screensaver` flag, true only for `GET /screensaver`, which adds the ESC hint (`.hint`) to the header. The hint is hidden below 800 px wide, where it would push the settings button off the edge; the screensaver always runs full screen.
     * The observer is **not** rendered into the template. It can change at runtime, and each `/aircraft` response already carries the observer its data was fetched for, so the page always uses that.
 * The index is routed as `GET /{$}`, not `GET /`. A catch-all `GET /` would also match `GET /observer`, turning its 405 into a 404.
 * Layout:
@@ -279,7 +281,7 @@ Behaviour:
     * The screensaver is installed as `$INSTDIR\Airframe.scr`, not System32.
         * A running `Airframe.scr` (screensaver, preview or settings dialog) locks the file, so both the installer and the uninstaller end it with `taskkill /F /IM Airframe.scr` first.
         * It is made active by writing its 8.3 path to HKCU `Control Panel\Desktop\SCRNSAVE.EXE`, then calling `SystemParametersInfo(SPI_SETSCREENSAVEACTIVE)`. The wait is written to `ScreenSaveTimeOut` (seconds) and applied with `SPI_SETSCREENSAVETIMEOUT`. The uninstaller leaves the timeout as it is.
-        * The port is written to HKCU `Software\Airframe-Screensaver\Url`, or to `UrlScreen0` if that already holds a localhost URL.
+        * `http://localhost:<port>/screensaver` is written to HKCU `Software\Airframe-Screensaver\Url`, or to `UrlScreen0` if that already holds a localhost URL (so an upgrade moves an old `/` URL to `/screensaver`). The finish-page link stays on `/`, because it opens a browser.
         * If the user picks another screensaver, Airframe may drop out of the Screen Saver Settings list. Right-click the `.scr` and choose **Install**, or re-run setup.
     * **HKCU is the elevating account.** If a standard user elevates with someone else's admin credentials, the screensaver is set for that admin account.
     * The uninstaller removes the service and the files. It keeps `%ProgramData%\Airframe` (the saved observer and airline cache). It clears `SCRNSAVE.EXE` only if it still points at Airframe, and keeps the screensaver's own settings.
@@ -290,6 +292,11 @@ Behaviour:
 * C# WinForms on .NET Framework 4.8 (`Airframe_Screensaver.csproj` / `.sln`). The assembly is `Airframe_ScreenSaver`. Packages come from `packages.config` (restored with the bundled `nuget.exe`); WebView2 is 1.0.3912.50.
 * The `.scr` is self-contained: Costura/Fody embeds the managed WebView2 DLLs, and `EmbeddedWebView2Loader.cs` extracts the native `WebView2Loader.dll` at run time. At run time it needs the .NET Framework 4.8 and the WebView2 Runtime.
 * Standard screensaver arguments in `Program.cs`: `/p` preview, `/c` settings, `/s` (or none) runs it.
+* **Interactive mode.** When a page loads successfully, `ScreensaverForm.IsInteractive` is set if its path ends in `/screensaver`, and cleared when the fallback clock is shown.
+    * On an interactive page, the global keyboard hook (`Program.cs`, key-down only) exits only on ESC; other keys reach the page. `ScreensaverInputFilter` and the WebView `KeyDown`/`PreviewKeyDown` handlers let input through. Mouse movement shows the cursor, and exits only if "Exit on mouse move" (`CloseOnActivity`, default off) is ticked. The X close button is not shown.
+    * Every other page (the `/` UI, third-party URLs, the clock) exits on any input as before; `/` is for viewing in a browser.
+    * The hook sees ESC first, so ESC exits even while the UI's settings dialog is open; its Cancel button closes it.
+    * The default primary-screen URL is `http://localhost:7700/screensaver`.
 * Settings are in HKCU `Software\Airframe-Screensaver` (`Program.KEY`, `PreferencesManager.cs`). WebView2 user data goes in `%LOCALAPPDATA%\Airframe-Screensaver`.
 * **Build:** `make build-screensaver` (Windows only) finds MSBuild with `vswhere`, restores packages, builds Release with `-p:PostBuildEvent=` and copies `bin/Release/Airframe_ScreenSaver.exe` to `bin/windows-amd64/Airframe_ScreenSaver.scr`. The project's own post-build event is disabled there because it runs `/capture-assets` to regenerate the README screenshots in `assets/`; a Visual Studio build still runs it.
 
@@ -323,7 +330,7 @@ Behaviour:
 * `Description` is `omitempty`.
 * `Category` (`omitempty`) was added to `Aircraft` so clients can tell ground vehicles from aircraft.
 * `AircraftData.Location` and `Radius` reflect the current observer, which can change at runtime through `POST /observer`, rather than always the command line.
-* `POST /observer`, `GET /healthz`, and the `--listen` and `--config` flags were added.
+* `POST /observer`, `GET /healthz`, `GET /screensaver`, and the `--listen` and `--config` flags were added.
 * The observer is saved to a config file and, once saved, takes precedence over `--location`/`--radius`.
 * Ground traffic on the radar is not labelled (see Web UI).
 * The non-Windows runner uses `!windows` rather than `linux`.

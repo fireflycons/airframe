@@ -80,8 +80,11 @@ namespace Web_Page_Screensaver
                 // [Keyboard Detection] Register global keyboard hook (prevents WebView2 from intercepting keys)
                 using (var keyboardHook = new GlobalKeyboardHook())
                 {
-                    keyboardHook.KeyPressed += (s, e) =>
+                    keyboardHook.KeyPressed += (s, key) =>
                     {
+                        // An interactive page takes the keyboard; only ESC leaves it
+                        var form = Form.ActiveForm as ScreensaverForm;
+                        if (key != Keys.Escape && form != null && form.IsInteractive) return;
                         Application.Exit();
                     };
 
@@ -104,7 +107,12 @@ namespace Web_Page_Screensaver
 
         public bool PreFilterMessage(ref Message m)
         {
-            // Exit unconditionally upon mouse click
+            // An interactive page takes the mouse; let the message through untouched
+            var control = Control.FromChildHandle(m.HWnd);
+            var form = control == null ? null : control.FindForm() as ScreensaverForm;
+            if (form != null && form.IsInteractive) return false;
+
+            // Exit upon mouse click
             if (m.Msg == WM_LBUTTONDOWN || m.Msg == WM_RBUTTONDOWN || m.Msg == WM_MBUTTONDOWN)
             {
                 Application.Exit();
@@ -145,7 +153,7 @@ namespace Web_Page_Screensaver
         private LowLevelKeyboardProc _proc;
         private IntPtr _hookID = IntPtr.Zero;
 
-        public event EventHandler KeyPressed;
+        public event EventHandler<Keys> KeyPressed;
 
         public GlobalKeyboardHook()
         {
@@ -166,12 +174,16 @@ namespace Web_Page_Screensaver
 
         private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
-            // When a keyboard press event is detected (Standard or System key)
+            // When a keyboard press event is detected (Standard or System key); key-ups are ignored
+            if (nCode >= 0 && (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN))
+            {
                 var handler = KeyPressed;
                 if (handler != null)
                 {
-                    handler(this, EventArgs.Empty);
+                    // KBDLLHOOKSTRUCT starts with the virtual-key code
+                    handler(this, (Keys)Marshal.ReadInt32(lParam));
                 }
+            }
             return CallNextHookEx(_hookID, nCode, wParam, lParam);
         }
 

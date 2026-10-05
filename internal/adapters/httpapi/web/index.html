@@ -88,6 +88,7 @@
 <header class="bar">
   <h1>airframe</h1>
   <div class="observer" id="observer">Waiting for data…</div>
+  {{if .Screensaver}}<span class="hint">Press ESC to exit the screensaver</span>{{end}}
   <div class="status">
     <span id="server" title="Server this page is loaded from"></span>
     <span id="updated"></span>

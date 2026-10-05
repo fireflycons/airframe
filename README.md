@@ -7,7 +7,7 @@ airframe shows the aircraft flying near you. It is a small server that polls [ai
     * `GET /aircraft` returns the observer and the list of aircraft, with type, airline, altitude, speeds, track, and distance and bearing from the observer.
     * `POST /observer` changes the location and radius at runtime.
 * **Low traffic.** airframe only polls while someone is using it. After 60 seconds with no requests it stops polling until the next request arrives.
-* **Windows screensaver** (optional). It shows the web UI full screen, so your screen becomes a live display of the sky overhead.
+* **Windows screensaver** (optional). It shows the web UI full screen, so your screen becomes a live display of the sky overhead. You can use the UI while it runs, including the settings dialog; press **ESC** to exit.
 
 It runs on Windows (as a service or from a console) and on Linux and macOS.
 
@@ -36,7 +36,7 @@ It runs on Windows (as a service or from a console) and on Linux and macOS.
 4. Finish. The installer:
     * copies airframe to `C:\Program Files\Airframe`,
     * installs and starts the `airframe` Windows service, set to start automatically,
-    * if selected, installs the screensaver and points it at `http://localhost:<port>/`.
+    * if selected, installs the screensaver and points it at `http://localhost:<port>/screensaver`.
 
 5. Open the link on the final page, `http://localhost:7700/` by default, to see the web UI.
 

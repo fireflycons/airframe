@@ -51,6 +51,16 @@ func TestIndex(t *testing.T) {
 	require.Equal(t, "text/html; charset=utf-8", rec.Header().Get("Content-Type"))
 	require.Contains(t, rec.Body.String(), `data-interval-ms="3000"`)
 	require.Contains(t, rec.Body.String(), `/static/app.js`)
+	require.NotContains(t, rec.Body.String(), "exit the screensaver")
+}
+
+func TestScreensaver(t *testing.T) {
+	rec := serve(&fakeService{}, http.MethodGet, "/screensaver", "")
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, "text/html; charset=utf-8", rec.Header().Get("Content-Type"))
+	require.Contains(t, rec.Body.String(), `data-interval-ms="3000"`)
+	require.Contains(t, rec.Body.String(), "Press ESC to exit the screensaver")
 }
 
 func TestStatic(t *testing.T) {
@@ -106,6 +116,7 @@ func TestAircraftError(t *testing.T) {
 func TestMethodNotAllowed(t *testing.T) {
 	require.Equal(t, http.StatusMethodNotAllowed, serve(&fakeService{}, http.MethodPost, "/aircraft", "").Code)
 	require.Equal(t, http.StatusMethodNotAllowed, serve(&fakeService{}, http.MethodGet, "/observer", "").Code)
+	require.Equal(t, http.StatusMethodNotAllowed, serve(&fakeService{}, http.MethodPost, "/screensaver", "").Code)
 }
 
 func TestSetObserver(t *testing.T) {
