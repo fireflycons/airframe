@@ -65,6 +65,17 @@ body {
   text-overflow: ellipsis;
 }
 
+.hint {
+  color: var(--muted);
+  font-size: .85rem;
+  white-space: nowrap;
+}
+
+/* The screensaver runs full screen; on a narrow window the hint would push the settings button off the edge. */
+@media (max-width: 800px) {
+  .hint { display: none; }
+}
+
 .status {
   display: flex;
   align-items: center;

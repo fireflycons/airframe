@@ -30,7 +30,7 @@ var webFS embed.FS
 
 var indexTemplate = template.Must(template.ParseFS(webFS, "web/index.html"))
 
-// Server serves the web UI, GET /aircraft and POST /observer.
+// Server serves the web UI (on / and /screensaver), GET /aircraft and POST /observer.
 type Server struct {
 	service ports.AircraftService
 	// Poll interval, rendered into the web UI so it polls at the same rate.
@@ -52,7 +52,9 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	// "/{$}" matches only the root. A bare "GET /" would also match
 	// GET /observer, which must stay a 405.
-	mux.HandleFunc("GET /{$}", s.index)
+	mux.HandleFunc("GET /{$}", s.index(false))
+	// The same UI for the Windows screensaver, which only exits on ESC here.
+	mux.HandleFunc("GET /screensaver", s.index(true))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(static)))
 	mux.HandleFunc("GET /aircraft", s.aircraft)
 	mux.HandleFunc("POST /observer", s.setObserver)
@@ -93,12 +95,18 @@ func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
 	return nil
 }
 
-func (s *Server) index(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache")
-	data := struct{ IntervalMs int64 }{s.interval.Milliseconds()}
-	if err := indexTemplate.Execute(w, data); err != nil {
-		slog.Error("rendering index", "error", err)
+// index serves the web UI. In screensaver mode it tells the user how to exit.
+func (s *Server) index(screensaver bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache")
+		data := struct {
+			IntervalMs  int64
+			Screensaver bool
+		}{s.interval.Milliseconds(), screensaver}
+		if err := indexTemplate.Execute(w, data); err != nil {
+			slog.Error("rendering index", "error", err)
+		}
 	}
 }
 

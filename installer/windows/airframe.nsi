@@ -411,11 +411,11 @@ Section "Install"
     ClearErrors
     ReadRegStr $0 HKCU "${SCR_REGKEY}" "UrlScreen0"
     ${If} ${Errors}
-      WriteRegStr HKCU "${SCR_REGKEY}" "Url" "http://localhost:$Port/"
+      WriteRegStr HKCU "${SCR_REGKEY}" "Url" "http://localhost:$Port/screensaver"
     ${Else}
       StrCpy $1 $0 17
       ${If} $1 == "http://localhost:"
-        WriteRegStr HKCU "${SCR_REGKEY}" "UrlScreen0" "http://localhost:$Port/"
+        WriteRegStr HKCU "${SCR_REGKEY}" "UrlScreen0" "http://localhost:$Port/screensaver"
       ${EndIf}
     ${EndIf}
   ${EndIf}

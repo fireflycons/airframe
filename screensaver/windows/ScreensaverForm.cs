@@ -29,6 +29,12 @@ namespace Web_Page_Screensaver
         private PreferencesManager prefsManager = new PreferencesManager();
         private int screenNum;
 
+        /// <summary>
+        /// True while an airframe /screensaver page is on screen. Its controls are meant to be used, so only ESC exits
+        /// (or mouse movement, if the user opted in); any other page exits on any input as usual.
+        /// </summary>
+        public bool IsInteractive { get; private set; }
+
         private WebView2 webView;
 
         [ThreadStatic]
@@ -128,11 +134,14 @@ namespace Web_Page_Screensaver
 
                         // On a network error or server outage, render an elegant modern digital clock fallback screen
                         showingFallbackClock = true;
+                        IsInteractive = false;
                         string fallbackHtml = FallbackHtmlProvider.GetFallbackClockHtml(currentLoadedUrl);
                         webView.CoreWebView2.NavigateToString(fallbackHtml);
                     }
                     else if (e.IsSuccess)
                     {
+                        IsInteractive = IsInteractiveUrl(webView.CoreWebView2.Source);
+
                         // 1. Apply the screen zoom factor
                         int zoomPercent = prefsManager.GetZoomFactorByScreen(screenNum);
                         webView.ZoomFactor = (zoomPercent > 0 ? zoomPercent : 100) / 100.0;
@@ -149,14 +158,17 @@ namespace Web_Page_Screensaver
             // ---------------------------------------------------------
             // [Modified part] Use events of the WebView2 control itself, not CoreWebView2.
             // 1. Detect general character and number keys
+            // On an interactive page keys belong to the page; the global hook in Program handles ESC.
             webView.KeyDown += (sender, e) =>
             {
+                if (IsInteractive) return;
                 Application.Exit();
             };
 
             // 2. Detect special keys like arrow keys, Tab, Esc, etc., that might be missed by general KeyDown (safety measure)
             webView.PreviewKeyDown += (sender, e) =>
             {
+                if (IsInteractive) return;
                 Application.Exit();
             };
             // ---------------------------------------------------------
@@ -323,11 +335,23 @@ namespace Web_Page_Screensaver
             }
         }
 
+        private static bool IsInteractiveUrl(string url)
+        {
+            Uri uri;
+            if (!Uri.TryCreate(url, UriKind.Absolute, out uri)) return false;
+            return uri.AbsolutePath.TrimEnd('/').EndsWith("/screensaver", StringComparison.OrdinalIgnoreCase);
+        }
+
         private void HandleUserActivity()
         {
             if (prefsManager.CloseOnActivity)
             {
                 Close();
+            }
+            else if (IsInteractive)
+            {
+                // No close button: ESC is the way out, and the page header says so
+                Cursor.Show();
             }
             else
             {

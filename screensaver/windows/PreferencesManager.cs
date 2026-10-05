@@ -25,11 +25,11 @@ namespace Web_Page_Screensaver
         private const string SCREEN_SPECIFIC_PREF_NAME_FORMATSTRING = "{0}Screen{1}";
 
         private const string MULTISCREEN_PREF_DEFAULT = "Separate";
-        private const string URL_PREF_PRIMARYSCREEN_DEFAULT = "http://localhost:7700/";
+        private const string URL_PREF_PRIMARYSCREEN_DEFAULT = "http://localhost:7700/screensaver";
         private const string URL_PREF_NONPRIMARYSCREEN_DEFAULT = "";
         private const string INTERVAL_PREF_DEFAULT = "30";
         private const string RANDOMIZE_PREF_DEFAULT = "False";
-        private const string CLOSE_ON_ACTIVITY_PREF_DEFAULT = "True";
+        private const string CLOSE_ON_ACTIVITY_PREF_DEFAULT = "False";
         private const string MUTE_AUDIO_PREF_DEFAULT = "True";
         private const string INPRIVATE_PREF_DEFAULT = "False";
         private const string CLOCK_OVERLAY_PREF_DEFAULT = "False";

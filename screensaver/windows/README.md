@@ -14,6 +14,7 @@ A Fork of the old archived project [ZenProjects/Chromium-Web-Page-Screensaver](h
 - **Config Backup & Restore**: Single-click JSON export and import for easy migration.
 - **Multi-Monitor Modes**: Span (Composite), Mirror (Clone), and Separate (Per-monitor URLs).
 - **Custom Per-URL Duration**: Individual display times via `URL|seconds` format.
+- **Interactive Airframe Mode**: Airframe `/screensaver` pages can be used with mouse and keyboard; press ESC to exit.
 - **URL Failover Mode**: Stay on the first available URL, falling back down the list, and return when it recovers.
 - **System Theme Sync**: Real-time Light and Dark mode switching with Windows theme.
 
